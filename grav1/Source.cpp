@@ -30,8 +30,6 @@ int wWinMain(void* _h, void* _h2, void* _c, int _s)
 #undef cd
 #undef d
 	}
-	// Strictly improper, but my debugger can't inspect the contents
-	// of kin here without me exposing the inner object (kin as a raw array).
 	Dyn d(n, param, std::shared_ptr<KinEntry[]>(kin));
 
 	// Integration method requires calculation of accelerations
@@ -72,7 +70,7 @@ int window(Dyn& dyn, Param const& sim_param, Vis& vis)
 				vis.arrow_at(kin[i].z, kin[i].v);
 
 				// Numerical label above particle.
-				char label[33]{};
+				char label[33];
 				if (_itoa_s(i, label, 10) != 0)
 					label[0] = '?', label[1] = '\0';
 				vis.label(kin[i].z, label);
@@ -93,26 +91,18 @@ C Dyn::accel(int i, C z) const
 {
 	// Newton's gravity has an inherent singularity at r = 0 (zero distance).
 	// I have to do something sensible in that situation.
-	static auto guard0 = [=](double x) { return x < param.guard0_dist ? param.guard0_dist : x; };
-	static auto invsq = [=](C z) {
-		double w = abs(z);
-		// Yes, divide three times.
-		// First to normalize the vector z, creating z / |z|
-		// (but we only return the scalar multiplier part, note!)
-		// then divide twice more so we have (z / |z|) / |z| / |z|,
-		// which is by algebra unit(z) / |z|^2.
-		// ... Inverse square law, as desired.
-		return guard0(1 / w / w / w); // type: (double)
-		};
-	C a;
+	static auto guard0 = [=](double x) { return std::max(x, param.guard0_dist); };
+	C force;
 	for (int j = n - 1; j >= 0; j--)
 	{
 		if (i == j) continue;
 		// Newton's law of gravitation.
-		C zj = kin[j].z, r = zj - z, aij = param.g * kin[j].m * invsq(r) * r;
-		a += aij;
+		C zj = kin[j].z, r = zj - z;
+		double w = abs(r), root = guard0(1 / w / w / w);
+		C aij = param.g * kin[j].m * root * r;
+		force += aij;
 	}
-	return a;
+	return force / kin[i].m;
 }
 
 void Dyn::accelall() const
