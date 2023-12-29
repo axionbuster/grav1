@@ -9,7 +9,7 @@ int window(Dyn&, Param const&, Vis&);
 
 int wWinMain(void* _h, void* _h2, void* _c, int _s)
 {
-	int n = 1000;
+	int n = 700;
 	Param param{};
 	Vis vis;
 	auto tab(new DynEntry[n]{});
@@ -23,7 +23,7 @@ int wWinMain(void* _h, void* _h2, void* _c, int _s)
 		// "internal" units (not display units).
 
 		// orientation: left-handed.
-		const double width = 500.0,
+		const double width = 1000.0,
 			height = width,
 			left = -width / 2, right = width / 2,
 			top = -height / 2, bottom = height / 2;
@@ -36,7 +36,7 @@ int wWinMain(void* _h, void* _h2, void* _c, int _s)
 		int cells = rows * columns,
 			quo = n / cells,
 			i = n - 1;
-		urdist mass(1.0, 5.0);
+		urdist mass(0.5, 1.0);
 		for (int r = rows - 1; r >= 0; r--)
 		{
 			const double row_top = top + height / rows * r,
@@ -67,10 +67,14 @@ int wWinMain(void* _h, void* _h2, void* _c, int _s)
 
 		// Some masses ... they are made extra massive and reactive.
 		const double prob = 0.01;
-		urdist bernoulli;
+		urdist bernoulli, mass2(40, 80);
 		for (i = n - 1; i >= 0; i--)
-			if (bernoulli(mt) < prob)
-				tab[i].m *= 10.0, tab[i].ljsigma *= 10.0;
+			if (bernoulli(mt) < prob && norm(tab[i].z) <= width * height / 2.0)
+			{
+				tab[i].m = mass2(mt);
+				tab[i].ljsigma = tab[i].m / 10.0;
+				tab[i].z += C(width, height);
+			}
 #undef make
 #undef urdist
 #undef d
@@ -170,7 +174,6 @@ DynEntry Dyn::iter(int i) const
 	auto limit = [=](double lim, C x) {
 		double w = abs(x);
 		if (w == 0.0) return x;
-		// Take this ratio, which should be close to 0 if x is small.
 		double ww = w / lim,
 			mag = lim / w * (2.0 / PI) * atan(ww);
 		return mag * x;
@@ -179,6 +182,8 @@ DynEntry Dyn::iter(int i) const
 	auto accel_limit = [=](C a) { return limit(param.accel_limit, a); };
 
 	// Method of leapfrog integration: conserves energy.
+	// Unphysical signal filters to prevent instabilities
+	// while not doing hard-spheres yet (but I might want to consider doing that).
 	double dt = param.dt;
 	DynEntry t(tab[i]);
 	C v1_(t.v + dt / 2 * t.a), v1(speed_limit(v1_)), z2(t.z + v1 * dt);

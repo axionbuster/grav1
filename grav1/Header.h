@@ -27,7 +27,7 @@ struct Param
 	/// <summary>
 	/// The universal gravitational constant (units: LLL / T / T / M)
 	/// </summary>
-	double g{ 1000.0 };
+	double g{ 7000.0 };
 	/// <summary>
 	/// Step size (units: T / frame).
 	/// </summary>
@@ -42,12 +42,12 @@ struct Param
 	/// An absolute speed limit (units: L/T).
 	/// If disabled, INFINITY.
 	/// </summary>
-	double speed_limit{ 100.0 };
+	double speed_limit{ 100 };
 	/// <summary>
 	/// An absolute acceleration limit (units: L/T/T).
 	/// If disabled, INFINITY.
 	/// </summary>
-	double accel_limit{ 100.0 };
+	double accel_limit{ 30.0 };
 	/// <summary>
 	/// A constant to be multiplied to the output of
 	/// the Lennard-Jones potential gradient
@@ -55,7 +55,7 @@ struct Param
 	/// the product will have the units of force.
 	/// (units: M/T/T).
 	/// </summary>
-	double lj_force_unit{ 0.25 };
+	double lj_force_unit{ 0.05 };
 };
 
 class Dyn
