@@ -145,8 +145,11 @@ KinEntry Dyn::iter(int i) const
 
 void Dyn::iterall() const
 {
+	std::unique_ptr<KinEntry[]> copy(new KinEntry[n]);
 	for (int i = n - 1; i >= 0; i--)
-		kin[i] = iter(i);
+		copy[i] = iter(i);
+	for (int i = n - 1; i >= 0; i--)
+		kin[i] = copy[i];
 }
 
 C Dyn::centroid() const
