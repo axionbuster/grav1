@@ -3,8 +3,6 @@
 #include "Include.h"
 #include <memory>
 
-using namespace std::literals::complex_literals;
-
 /// <summary>
 /// An entry in a kinematical table (a table that
 /// stores all kinematic variables but also mass).
@@ -27,7 +25,7 @@ struct Param
 	/// <summary>
 	/// The universal gravitational constant (units: LLL / T / T / M)
 	/// </summary>
-	double g{ 0.10 };
+	double g{ 10.0 };
 	/// <summary>
 	/// Step size (units: T).
 	/// </summary>
@@ -37,11 +35,11 @@ struct Param
 	/// magnitude of a vector to avoid division by zero or
 	/// a number close to zero. (units: L).
 	/// </summary>
-	double guard0_dist{ 0.001 };
+	double guard0_dist{ 0.01 };
 	/// <summary>
 	/// An absolute speed limit (units: L/T).
 	/// </summary>
-	double speed_limit{ 70.0 };
+	double speed_limit{ INFINITY };
 };
 
 class Dyn
@@ -70,13 +68,13 @@ public:
 	/// </summary>
 	void iterall() const;
 	/// <summary>
-	/// Compute the geometric centroid of all particles (ignoring mass).
+	/// Compute the barycenter.
 	/// </summary>
 	/// <returns></returns>
-	C centroid() const;
+	C bary() const;
 	/// <summary>
 	/// Remove the position bias from all particles.
 	/// </summary>
-	void reset_centroid() const;
+	void reset_bary() const;
 private:
 };

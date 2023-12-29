@@ -133,6 +133,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Source.cpp" />
+    <ClCompile Include="Vis.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Header.h" />
