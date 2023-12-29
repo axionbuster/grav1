@@ -9,38 +9,73 @@ int window(Dyn&, Param const&, Vis&);
 
 int wWinMain(void* _h, void* _h2, void* _c, int _s)
 {
-	int n_half = 200, n = n_half * 2;
+	int n = 1000;
 	Param param{};
 	Vis vis;
-	auto kin(new KinEntry[n]{});
+	auto tab(new DynEntry[n]{});
 
 	{
 		// Lots of random tweakings here and there...
 		std::random_device rd;
 		std::mt19937 mt(rd());
-		std::normal_distribution<double> dist;
-#define d() dist(mt)
-#define cd() C(d(), d())
-		double largest_mass{};
-		for (int i = n - 1; i >= 2; i--)
+
+		// units of measurement in this block:
+		// "internal" units (not display units).
+
+		// orientation: left-handed.
+		const double width = 500.0,
+			height = width,
+			left = -width / 2, right = width / 2,
+			top = -height / 2, bottom = height / 2;
+		const int rows = 20,
+			columns = 20;
+
+#define d(dist) dist(mt)
+#define urdist std::uniform_real_distribution<double>
+#define make(what, dist0, dist1) what.z = C(dist0(mt), dist1(mt))
+		int cells = rows * columns,
+			quo = n / cells,
+			i = n - 1;
+		urdist mass(1.0, 5.0);
+		for (int r = rows - 1; r >= 0; r--)
 		{
-			double m = abs(d()) * 0.2 + 0.1;
-			largest_mass = std::max(largest_mass, m);
-			kin[i].m = m, kin[i].z = cd() * 25.0,
-				kin[i].v = cd() * 0.1;
+			const double row_top = top + height / rows * r,
+				row_bottom = top + height / rows * (r + 1);
+			urdist distr(row_top, row_bottom);
+			for (int c = columns - 1; c >= 0; c--)
+			{
+				const double column_left = left + width / columns * c,
+					column_right = left + width / columns * (c + 1);
+				urdist distc(column_left, column_right);
+				for (int j = quo - 1; j >= 0; j--)
+				{
+					make(tab[i], distc, distr);
+					tab[i].m = mass(mt);
+					tab[i].ljsigma = tab[i].m * 5.0;
+					i--;
+				}
+			}
 		}
-		kin[0].m = largest_mass + 10.0;
-		kin[1].m = largest_mass * 0.1 + 10.0;
-		C second_center(cd() * 300.0);
-		C second_centers_velocity(cd() * 5.0);
-		kin[1].z += second_center;
-		kin[1].v += second_centers_velocity;
-		for (int i = n - 1; i >= n_half; i--)
-			kin[i].z += second_center;
-#undef cd
+		urdist distr(top, bottom), distc(left, right);
+		while (i >= 0)
+		{
+			make(tab[i], distc, distr);
+			tab[i].m = mass(mt);
+			tab[i].ljsigma = tab[i].m * 5.0;
+			i--;
+		}
+
+		// Some masses ... they are made extra massive and reactive.
+		const double prob = 0.01;
+		urdist bernoulli;
+		for (i = n - 1; i >= 0; i--)
+			if (bernoulli(mt) < prob)
+				tab[i].m *= 10.0, tab[i].ljsigma *= 10.0;
+#undef make
+#undef urdist
 #undef d
 	}
-	Dyn d(n, param, std::shared_ptr<KinEntry[]>(kin));
+	Dyn d(n, param, std::shared_ptr<DynEntry[]>(tab));
 
 	// Integration method requires calculation of accelerations
 	// before the first iteration.
@@ -60,10 +95,10 @@ int window(Dyn& dyn, Param const& sim_param, Vis& vis)
 	{
 		// Do the calculations.
 		dyn.iterall();
-		dyn.reset_bary();
+		dyn.center_vz();
 
 		int n = dyn.n;
-		auto const& kin = dyn.kin;
+		auto const& tab = dyn.tab;
 
 		// Draw.
 
@@ -77,14 +112,8 @@ int window(Dyn& dyn, Param const& sim_param, Vis& vis)
 
 			for (int i = n - 1; i >= 0; i--)
 			{
-				vis.plot(kin[i].z, kin[i].m);
-				vis.arrow_at(kin[i].z, kin[i].v);
-
-				// Numerical label above particle.
-				char label[33];
-				if (_itoa_s(i, label, 10) != 0)
-					label[0] = '?', label[1] = '\0';
-				// vis.label(kin[i].z, label);
+				vis.plot(tab[i].z, tab[i].m);
+				vis.arrow_at(tab[i].z, tab[i].v);
 			}
 
 			// where (px): x, y.
@@ -100,77 +129,85 @@ int window(Dyn& dyn, Param const& sim_param, Vis& vis)
 
 C Dyn::accel(int i, C z) const
 {
-	// Newton's gravity has an inherent singularity at r = 0 (zero distance).
-	// I have to do something sensible in that situation.
-	auto cbrecip_guard0 = [=](double x) {
-		x = std::max(x, param.guard0_dist);
-		return 1 / x / x / x;
-		};
-	C specific_force;
+	C accel;
 	for (int j = n - 1; j >= 0; j--)
 	{
 		if (i == j) continue;
-		// Newton's law of gravitation.
-		C zj = kin[j].z, r = zj - z;
-		double w = cbrecip_guard0(abs(r));
-		C aij = param.g * kin[j].m * w * r;
-		specific_force += aij;
+		C zj = tab[j].z, r = zj - z;
+		// Newton's gravity has an inherent singularity at r = 0 (zero distance).
+		// I have to do something sensible in that situation.
+		double w = std::max(abs(r), param.guard0_dist);
+		// Newton's law of gravity.
+		C aij_newtgrav = param.g * tab[j].m * (1 / w / w / w) * r;
+		// Lennard-Jones potential (gradient).
+		// Let h = signa(j) / |r|.
+		// where j is the "other" particle.
+		// Note that h is dimensionless, since both |r| and sigma are lengths.
+		// Now, compute the 7th and 13th powers of h.
+		double h = tab[j].ljsigma / w,
+			h3 = h * h * h, h6 = h3 * h3, h12 = h6 * h6;
+		C aij_lj = 4 * param.lj_force_unit * (h * h6 - h * h12) / tab[i].m * r;
+		accel += aij_newtgrav + aij_lj;
 	}
-	return specific_force;
+	return accel;
 }
 
 void Dyn::accelall() const
 {
-	std::unique_ptr<KinEntry[]> copy(new KinEntry[n]);
+	std::unique_ptr<DynEntry[]> copy(new DynEntry[n]{});
 	for (int i = n - 1; i >= 0; i--)
-		copy[i].a = accel(i, (copy[i] = kin[i], copy[i].z));
+	{
+		copy[i] = tab[i];
+		copy[i].a = accel(i, copy[i].z);
+	}
 	for (int i = n - 1; i >= 0; i--)
-		kin[i] = copy[i];
+		tab[i] = copy[i];
 }
 
-KinEntry Dyn::iter(int i) const
+DynEntry Dyn::iter(int i) const
 {
-	auto speed_limit = [=](C v) {
-		double w = abs(v);
-		if (w == 0.0) return v;
-		// Take this ratio, which should be close to 0 if v is small.
-		double ww = w / param.speed_limit;
-		// If small enough, don't do anything.
-		// If too large, cap it to a certain proportion of the speed limit.
-		return ww < 0.99 ? v : 0.99 / ww * v;
+	// Limit the magnitude of a vector.
+	auto limit = [=](double lim, C x) {
+		double w = abs(x);
+		if (w == 0.0) return x;
+		// Take this ratio, which should be close to 0 if x is small.
+		double ww = w / lim,
+			mag = lim / w * (2.0 / PI) * atan(ww);
+		return mag * x;
 		};
+	auto speed_limit = [=](C v) { return limit(param.speed_limit, v); };
+	auto accel_limit = [=](C a) { return limit(param.accel_limit, a); };
 
 	// Method of leapfrog integration: conserves energy.
-	double dt = param.dt, dthalf = dt / 2;
-	KinEntry k(kin[i]);
-	C v1_(k.v + k.a * dthalf), v1(speed_limit(v1_)), z2(k.z + v1 * dt);
-	C a2(accel(i, z2));
-	C v2_(v1 + a2 * dthalf), v2(speed_limit(v2_));
-	k.z = z2, k.v = v2, k.a = a2;
-	return k;
+	double dt = param.dt;
+	DynEntry t(tab[i]);
+	C v1_(t.v + dt / 2 * t.a), v1(speed_limit(v1_)), z2(t.z + v1 * dt);
+	C a2_(accel(i, z2)), a2(accel_limit(a2_));
+	C v2_(v1 + dt / 2 * a2), v2(speed_limit(v2_));
+	t.z = z2, t.v = v2, t.a = a2;
+	return t;
 }
 
 void Dyn::iterall() const
 {
-	std::unique_ptr<KinEntry[]> copy(new KinEntry[n]);
+	std::unique_ptr<DynEntry[]> copy(new DynEntry[n]{});
 	for (int i = n - 1; i >= 0; i--)
 		copy[i] = iter(i);
 	for (int i = n - 1; i >= 0; i--)
-		kin[i] = copy[i];
+		tab[i] = copy[i];
 }
 
-C Dyn::bary() const
+void Dyn::center_vz() const
 {
 	// Welford's online algorithm.
 	// Difficult to parallelize, but at least numerically stable.
-	C welford;
+	C barycenter, velbias;
 	for (int i = n - 1, m = 0; i >= 0; i--)
-		welford += (kin[i].z * kin[i].m - welford) / (double)++m;
-	return welford;
-}
-
-void Dyn::reset_bary() const
-{
-	C c(bary());
-	for (int i = n - 1; i >= 0; i--) kin[i].z -= c;
+	{
+		double o = ++m;
+		barycenter += (tab[i].z * tab[i].m - barycenter) / o;
+		velbias += (tab[i].v - velbias) / o;
+	}
+	barycenter /= mass;
+	for (int i = n - 1; i >= 0; i--) tab[i].z -= barycenter, tab[i].v -= velbias;
 }
