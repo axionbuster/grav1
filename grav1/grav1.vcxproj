@@ -132,11 +132,12 @@
     <None Include="README.md" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="Dyn.cpp" />
     <ClCompile Include="Source.cpp" />
     <ClCompile Include="Vis.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Header.h" />
+    <ClInclude Include="Dyn.h" />
     <ClInclude Include="Include.h" />
     <ClInclude Include="Vis.h" />
   </ItemGroup>

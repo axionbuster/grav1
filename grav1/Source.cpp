@@ -1,11 +1,57 @@
-#include "Header.h"
+#include "Dyn.h"
 #include "Vis.h"
 
+#include <functional>
 #include <random>
 
 constexpr auto FPS = 60;
 
-int window(Dyn&, Param const&, Vis&);
+/// <summary>
+/// Draw things to the screen and talk to the human,
+/// while advancing the simulation state.
+/// </summary>
+/// <param name="">Physical table (particles and states);
+/// accelerations must have been computed.</param>
+/// <param name="">Simulation parameters, which this function might change.</param>
+/// <param name="">Visualizer object, which this function might touch.</param>
+/// <returns>Suggested return value for the process (e.g., 0 means success).</returns>
+int window(Dyn&, Param&, Vis&);
+
+/// <summary>
+/// Generate a random number (stored in the heap).
+/// 
+/// This structure is Callable.
+/// </summary>
+template<typename State = std::mt19937>
+struct HeapRandom
+{
+	/// <summary>
+	/// Given a seed (specified by the internal state structure),
+	/// initialize a random state.
+	/// 
+	/// Safe to call a std::random_device instance for the seed.
+	/// </summary>
+	/// <typeparam name="Seed"></typeparam>
+	/// <param name="s"></param>
+	template<typename Seed>
+	HeapRandom(Seed s) : mt(std::make_shared<State>(s)) {}
+	/// <summary>
+	/// Generate a random number (double)
+	/// from a given distribution (dist : Dist).
+	/// </summary>
+	/// <typeparam name="Dist">A type for the distribution.</typeparam>
+	/// <param name="dist">The distribution.</param>
+	/// <returns></returns>
+	template<typename Dist>
+	double operator()(Dist& dist) { return dist(*mt); }
+private:
+	/// <summary>
+	/// Internal random number generator state.
+	/// 
+	/// (Mersenne Twister).
+	/// </summary>
+	std::shared_ptr<State> mt;
+};
 
 int wWinMain(void* _h, void* _h2, void* _c, int _s)
 {
@@ -14,72 +60,33 @@ int wWinMain(void* _h, void* _h2, void* _c, int _s)
 	Vis vis;
 	auto tab(new DynEntry[n]{});
 
-	{
-		// Lots of random tweakings here and there...
-		std::random_device rd;
-		std::mt19937 mt(rd());
-
-		// units of measurement in this block:
-		// "internal" units (not display units).
-
-		// orientation: left-handed.
-		const double width = 1000.0,
-			height = width,
-			left = -width / 2, right = width / 2,
-			top = -height / 2, bottom = height / 2;
-		const int rows = 20,
-			columns = 20;
-
-#define d(dist) dist(mt)
-#define urdist std::uniform_real_distribution<double>
-#define make(what, dist0, dist1) what.z = C(dist0(mt), dist1(mt))
-		int cells = rows * columns,
-			quo = n / cells,
-			i = n - 1;
-		urdist mass(0.5, 1.0);
-		for (int r = rows - 1; r >= 0; r--)
-		{
-			const double row_top = top + height / rows * r,
-				row_bottom = top + height / rows * (r + 1);
-			urdist distr(row_top, row_bottom);
-			for (int c = columns - 1; c >= 0; c--)
-			{
-				const double column_left = left + width / columns * c,
-					column_right = left + width / columns * (c + 1);
-				urdist distc(column_left, column_right);
-				for (int j = quo - 1; j >= 0; j--)
-				{
-					make(tab[i], distc, distr);
-					tab[i].m = mass(mt);
-					tab[i].ljsigma = tab[i].m * 5.0;
-					i--;
-				}
-			}
-		}
-		urdist distr(top, bottom), distc(left, right);
-		while (i >= 0)
-		{
-			make(tab[i], distc, distr);
-			tab[i].m = mass(mt);
-			tab[i].ljsigma = tab[i].m * 5.0;
-			i--;
-		}
-
-		// Some masses ... they are made extra massive and reactive.
-		const double prob = 0.01;
-		urdist bernoulli, mass2(40, 80);
-		for (i = n - 1; i >= 0; i--)
-			if (bernoulli(mt) < prob && norm(tab[i].z) <= width * height / 2.0)
-			{
-				tab[i].m = mass2(mt);
-				tab[i].ljsigma = tab[i].m / 10.0;
-				tab[i].z += C(width, height);
-			}
-#undef make
-#undef urdist
-#undef d
-	}
 	Dyn d(n, param, std::shared_ptr<DynEntry[]>(tab));
+
+	// Some policies
+	auto test_replace = [](DynEntry const& d)
+		{
+#define cfinite(c) (std::isfinite((c).real()) && std::isfinite((c).imag()))
+			return
+				!(cfinite(d.z) && cfinite(d.v) && cfinite(d.a)
+					&& std::isnormal(d.m) && abs(d.z) < 10000);
+#undef cfinite
+		};
+	std::random_device rd;
+	auto replace0 = [](HeapRandom<> hr)
+		{
+			typedef std::uniform_real_distribution<> urdist;
+			urdist posdist(-300, 300), massdist(0.4, 0.9), veldist(0, 1),
+				vel_theta_dist(0.0, PI / 3);
+			DynEntry d;
+			d.z = C(hr(posdist), hr(posdist));
+			d.m = hr(massdist);
+			d.v = std::polar(hr(veldist) / abs(d.z), hr(vel_theta_dist)) * d.z;
+			d.ljsigma = std::sqrt(d.m) * 10.0;
+			return d;
+		};
+	auto replace = std::bind(replace0, HeapRandom<>(rd()));
+	d.driver.test_replace = test_replace;
+	d.driver.replace = replace;
 
 	// Integration method requires calculation of accelerations
 	// before the first iteration.
@@ -88,7 +95,7 @@ int wWinMain(void* _h, void* _h2, void* _c, int _s)
 	return window(d, param, vis);
 }
 
-int window(Dyn& dyn, Param const& sim_param, Vis& vis)
+int window(Dyn& dyn, Param& sim_param, Vis& vis)
 {
 	// Raylib.
 	InitWindow(800, 600, "a");
@@ -129,90 +136,4 @@ int window(Dyn& dyn, Param const& sim_param, Vis& vis)
 	}
 	CloseWindow();
 	return 0;
-}
-
-C Dyn::accel(int i, C z) const
-{
-	C accel;
-	for (int j = n - 1; j >= 0; j--)
-	{
-		if (i == j) continue;
-		C zj = tab[j].z, r = zj - z;
-		// Newton's gravity has an inherent singularity at r = 0 (zero distance).
-		// I have to do something sensible in that situation.
-		double w = std::max(abs(r), param.guard0_dist);
-		// Newton's law of gravity.
-		C aij_newtgrav = param.g * tab[j].m * (1 / w / w / w) * r;
-		// Lennard-Jones potential (gradient).
-		// Let h = signa(j) / |r|.
-		// where j is the "other" particle.
-		// Note that h is dimensionless, since both |r| and sigma are lengths.
-		// Now, compute the 7th and 13th powers of h.
-		double h = tab[j].ljsigma / w,
-			h3 = h * h * h, h6 = h3 * h3, h12 = h6 * h6;
-		C aij_lj = 4 * param.lj_force_unit * (h * h6 - h * h12) / tab[i].m * r;
-		accel += aij_newtgrav + aij_lj;
-	}
-	return accel;
-}
-
-void Dyn::accelall() const
-{
-	std::unique_ptr<DynEntry[]> copy(new DynEntry[n]{});
-	for (int i = n - 1; i >= 0; i--)
-	{
-		copy[i] = tab[i];
-		copy[i].a = accel(i, copy[i].z);
-	}
-	for (int i = n - 1; i >= 0; i--)
-		tab[i] = copy[i];
-}
-
-DynEntry Dyn::iter(int i) const
-{
-	// Limit the magnitude of a vector.
-	auto limit = [=](double lim, C x) {
-		double w = abs(x);
-		if (w == 0.0) return x;
-		double ww = w / lim,
-			mag = lim / w * (2.0 / PI) * atan(ww);
-		return mag * x;
-		};
-	auto speed_limit = [=](C v) { return limit(param.speed_limit, v); };
-	auto accel_limit = [=](C a) { return limit(param.accel_limit, a); };
-
-	// Method of leapfrog integration: conserves energy.
-	// Unphysical signal filters to prevent instabilities
-	// while not doing hard-spheres yet (but I might want to consider doing that).
-	double dt = param.dt;
-	DynEntry t(tab[i]);
-	C v1_(t.v + dt / 2 * t.a), v1(speed_limit(v1_)), z2(t.z + v1 * dt);
-	C a2_(accel(i, z2)), a2(accel_limit(a2_));
-	C v2_(v1 + dt / 2 * a2), v2(speed_limit(v2_));
-	t.z = z2, t.v = v2, t.a = a2;
-	return t;
-}
-
-void Dyn::iterall() const
-{
-	std::unique_ptr<DynEntry[]> copy(new DynEntry[n]{});
-	for (int i = n - 1; i >= 0; i--)
-		copy[i] = iter(i);
-	for (int i = n - 1; i >= 0; i--)
-		tab[i] = copy[i];
-}
-
-void Dyn::center_vz() const
-{
-	// Welford's online algorithm.
-	// Difficult to parallelize, but at least numerically stable.
-	C barycenter, velbias;
-	for (int i = n - 1, m = 0; i >= 0; i--)
-	{
-		double o = ++m;
-		barycenter += (tab[i].z * tab[i].m - barycenter) / o;
-		velbias += (tab[i].v - velbias) / o;
-	}
-	barycenter /= mass;
-	for (int i = n - 1; i >= 0; i--) tab[i].z -= barycenter, tab[i].v -= velbias;
 }

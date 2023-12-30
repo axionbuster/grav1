@@ -2,6 +2,7 @@
 
 #include "Include.h"
 #include <memory>
+#include <functional>
 
 /// <summary>
 /// An entry in a geometric table.
@@ -16,7 +17,7 @@ struct DynEntry
 	/// <summary>
 	/// Scalars: mass (m: M), and the Lennard-Jones "sigma" (ljsigma: L).
 	/// </summary>
-	double m{ 1.0 }, ljsigma{ 1.0 };
+	double m{}, ljsigma{ 1.0 };
 };
 
 /// <summary>
@@ -27,7 +28,7 @@ struct Param
 	/// <summary>
 	/// The universal gravitational constant (units: LLL / T / T / M)
 	/// </summary>
-	double g{ 7000.0 };
+	double g{ 9.0 };
 	/// <summary>
 	/// Step size (units: T / frame).
 	/// </summary>
@@ -37,17 +38,17 @@ struct Param
 	/// magnitude of a vector to avoid division by zero or
 	/// a number close to zero. (units: L).
 	/// </summary>
-	double guard0_dist{ 0.40 };
+	double guard0_dist{ 0.30 };
 	/// <summary>
 	/// An absolute speed limit (units: L/T).
 	/// If disabled, INFINITY.
 	/// </summary>
-	double speed_limit{ 100 };
+	double speed_limit{ 1000000.0 };
 	/// <summary>
 	/// An absolute acceleration limit (units: L/T/T).
 	/// If disabled, INFINITY.
 	/// </summary>
-	double accel_limit{ 30.0 };
+	double accel_limit{ 10000000.0 };
 	/// <summary>
 	/// A constant to be multiplied to the output of
 	/// the Lennard-Jones potential gradient
@@ -55,7 +56,28 @@ struct Param
 	/// the product will have the units of force.
 	/// (units: M/T/T).
 	/// </summary>
-	double lj_force_unit{ 0.05 };
+	double lj_force_unit{ 400.0 };
+};
+
+/// <summary>
+/// A set of behaviors.
+/// </summary>
+struct DynDriver
+{
+	/// <summary>
+	/// If exists, then a procedure to decide
+	/// whether a particle (d) in the table warrants a replacement.
+	/// 
+	/// Allowed to not exist.
+	/// </summary>
+	std::function<bool(DynEntry const&)> test_replace{};
+	/// <summary>
+	/// If exists, then a procedure to generate a new particle
+	/// independent of the state of the simulation.
+	/// 
+	/// Allowed to not exist.
+	/// </summary>
+	std::function<DynEntry(void)> replace{};
 };
 
 class Dyn
@@ -63,6 +85,7 @@ class Dyn
 public:
 	int n{};
 	Param param;
+	DynDriver driver;
 	std::shared_ptr<DynEntry[]> tab;
 	Dyn(int n, Param param, std::shared_ptr<DynEntry[]> tab) :
 		n(n), param(param), tab(tab), mass(compute_mass()) {}
@@ -80,11 +103,11 @@ public:
 	/// Compute the accelerations (see `accel`) and return an abridged copy
 	/// of what would be the new row, but don't store it.
 	/// </summary>
-	DynEntry iter(int i) const;
+	DynEntry iter(int i);
 	/// <summary>
 	/// Advance the state of all particles and store it.
 	/// </summary>
-	void iterall() const;
+	void iterall();
 	/// <summary>
 	/// Remove the position and velocity bias from all particles.
 	/// </summary>

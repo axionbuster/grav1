@@ -26,9 +26,12 @@
     <ClCompile Include="Vis.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="Dyn.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Header.h">
+    <ClInclude Include="Dyn.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Vis.h">

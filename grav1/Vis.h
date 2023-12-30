@@ -18,7 +18,7 @@ struct VisParam
 	/// an "L unit" is the internal (physics engine) length unit.
 	/// </summary>
 	float sc_px_per_l{ 0.50f };
-	float radius_px{ 2.0f };
+	float radius_px{ 15.0f };
 	float arrow_max_px{ 30.0f };
 	float arrow_tip_len_ratio{ 1.0f / 3 };
 	Color circle_color{ BLACK };
