@@ -96,8 +96,6 @@ void Dyn::center_vz() const
 	{
 		double o = ++m;
 		barycenter += (tab[i].z * tab[i].m - barycenter) / o;
-		if (!std::isfinite(barycenter.real()) || !std::isfinite(barycenter.imag()))
-			throw 0;
 		velbias += (tab[i].v - velbias) / o;
 	}
 	barycenter /= mass;
