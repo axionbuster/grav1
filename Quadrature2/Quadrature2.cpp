@@ -1,92 +1,51 @@
-#include <raylib.hpp>
-#include <complex>
 #include <deque>
 
-using namespace std::literals::complex_literals;
+#include "Header.h"
+#include "Q2vis.h"
+#include "Halton.h"
 
-typedef std::complex<double> C;
-typedef std::complex<float> Cf;
+using namespace vis;
+using namespace halton;
 
 /// <summary>
-/// Generate a Halton sequence (algorithm is due to Wikipedia) of a given base (`b`).
+/// Plot the circles and the axes.
 /// </summary>
-struct Halton
-{
-	int n{ 0 }, d{ 1 }, x{}, y{}, b{};
-	Halton(int b) : b(b) {}
-	double next();
-};
+/// <param name="w2v"></param>
+/// <param name="midpoint"></param>
+void circ_axes(float w2v, Cf midpoint);
 
-static void plot(Cf v)
+struct Lune
 {
-	Cf const dim(5.f, 5.f);
-	v -= dim * 0.5f;
-	Vector2 v2{ v.real(), v.imag() },
-		dim2{ dim.real(), dim.imag() };
-	DrawRectangleV(v2, dim2, BLACK);
-}
-
-static void line(Cf from, Cf to, float thick = 1.f, Color c = BLACK)
-{
-	Vector2 from2{ from.real(), from.imag() },
-		to2{ to.real(), to.imag() };
-	DrawLineEx(from2, to2, thick, c);
-}
-
-static void axis1(Cf v, Cf interval, int n, char const* format, double show_unit = 0.f)
-{
-	Cf const tick = 5.if;
-	Cf const rot = interval / abs(interval);
-	Cf const neg_extr = -interval * (float)n,
-		pos_extr = interval * (float)n;
-	line(v + neg_extr, v + pos_extr);
-
-	for (float i = (float)-n; i <= n; i++)
+	Halton h2, h3;
+	std::deque<C> log;
+	double c{}, rsq{};
+	int freq{}, cap{};
+	Lune(Halton h2, Halton h3, double c, double r, int cap = 100)
+		: h2(h2), h3(h3), c(c), rsq(r* r), cap(cap)
 	{
-		if (i == 0) continue;
-		Cf const at = interval * i,
-			to1 = at + rot * tick * .5f,
-			to2 = at - rot * tick * .5f;
-		line(v + to1, v + to2);
-
-		if (show_unit == 0) continue;
-		// Some font stuff...
-		Font font = GetFontDefault();
-		float font_size =
-			(i == 1 || i == -1) ? 16.f : 10.f;
-		float spacing = 1.0f;
-		Color tint = BLACK;
-
-		// Plan printing.
-		char text[256];
-		snprintf(text, sizeof(text), format, i * show_unit);
-		Vector2 text_dim = MeasureTextEx(font, text, font_size, spacing);
-		Cf text_dim_cf(text_dim.x, text_dim.y);
-
-		// Center.
-		Cf text_loc = at - text_dim_cf * .5f,
-			text_loc_v = v + text_loc;
-		Vector2 text_loc_v2{ text_loc_v.real(), text_loc_v.imag() };
-
-		// Print.
-		DrawTextEx(font, text, text_loc_v2, font_size, spacing, tint);
+		using std::min;
+		using std::max;
+		// Starting from a rectangle, construct the bounding square.
+		double le = min(-1., c - r),
+			ri = max(1., c + r),
+			to = max(1., r),
+			bo = min(-1., -r);
+		dim = max(max(abs(le), abs(ri)),
+			max(abs(to), abs(bo))) * 2;
 	}
-}
-
-static void axes(Cf v, Cf re, Cf im, int n, double label = 0)
-{
-	axis1(v, re, n, "%.2f", label);
-	axis1(v, im, n, "%.2fi", label);
-}
-
-static void circle(Cf o, float r, Color const* fill, Color const* border)
-{
-	Vector2 v{ o.real(), o.imag() };
-	if (fill)
-		DrawCircleV(v, r, *fill);
-	if (border)
-		DrawCircleLinesV(v, r, *border);
-}
+	void advance();
+	double quadrature() const
+	{
+		return dim * dim * freq / log.size();
+	}
+	double dimension() const { return dim; }
+	static bool left_static(C p) { return std::norm(p) < 1.0; }
+	bool left(C p) const { return left_static(p); }
+	bool right(C p) const { return std::norm(p - c) < rsq; }
+	bool in(C p) const { return left(p) && !right(p); }
+private:
+	double dim{};
+};
 
 int wWinMain(void* _0, void* _1, wchar_t const* _2, int _3)
 {
@@ -97,84 +56,110 @@ int wWinMain(void* _0, void* _1, wchar_t const* _2, int _3)
 	InitWindow(600, 600, "q2");
 	SetTargetFPS(60);
 
-	// To use Halton low-discrepancy sequences to fill up the unit square
-	// in n-space, use successive prime numbers (2, 3, 5, etc.) and
-	// generate x, y, z, etc. coordinates from these individual streams.
-	Halton h2(2), h3(3);
-	std::deque<Cf> world_halton;
-
-	// Test rotating axes.
-	unsigned fr = 0;
+	// As a test case, use the Lune of Hippocrates.
+	Lune lune(
+		// Use successive prime numbers as the bases for the Halton sequences.
+		Halton(2), Halton(3),
+		// Center of the other circle; radius thereof.
+		1 / sqrt(2), 1 / sqrt(2),
+		// Capacity (number of evaluations to hold in queue).
+		1000
+	);
 
 	while (!WindowShouldClose())
 	{
-		// Compute the midpoint.
+		lune.advance();
 		Cf midpoint = Cf(GetScreenWidth() * 0.5f, GetScreenHeight() * 0.5f);
-
-		// Update the low-discrepancy square.
-		world_halton.push_front(Cf((float)h2.next(), (float)h3.next()));
-		if (world_halton.size() >= 101)
-			world_halton.pop_back();
 
 		BeginDrawing();
 		{
 			ClearBackground(WHITE);
 
-			// Plot the axes.
-			axes
-			(
-				midpoint,
-				w2v,
-				w2v * 1.if,
-				// How many tick marks?
-				1 + (int)(midpoint.real() / w2v),
-				// Scale factor.
-				1.f
-			);
+			// Some decor...
+			circ_axes(w2v, midpoint);
 
-			// Plot the circles.
-			// (Setting up the lunes of Hippocrates).
-			Color c1fill = RED,
-				c1border = RED;
-			c1fill.a = 100;
-			Color c2fill = BLUE,
-				c2border = BLUE;
-			c2fill.a = 100;
-			float const circle2_radius = 1 / sqrtf(2);
-			circle(midpoint, 1.f * w2v, &c1fill, &c1border);
-			circle(midpoint + w2v * circle2_radius, w2v * circle2_radius, &c2fill, &c2border);
-
-			// Plot the low-discrepancy square.
-			for (int i = (int)world_halton.size() - 1; i >= 0; i--)
+			// The chosen square...
 			{
-				auto const& world_point = world_halton[i];
-				auto const view_point = midpoint + Cf(world_point.real() * w2v,
-					world_point.imag() * w2v);
-				plot(view_point);
+				Rectangle r{};
+				float w2vf = w2v;
+				r.x = (float)lune.dimension() / -2 * w2vf + (float)midpoint.real();
+				r.y = (float)lune.dimension() / -2 * w2vf + (float)midpoint.imag();
+				r.width = (float)lune.dimension() * w2vf;
+				r.height = (float)lune.dimension() * w2vf;
+				DrawRectangleLinesEx(r, 1.0f, BLACK);
 			}
 
+			// Plotting.
+			for (int i = (int)(lune.log.size() - 1); i >= 0; i--)
+			{
+				auto const& p = lune.log[i];
+				auto const at = downgrade(p) * w2v + midpoint;
+				Color c = BLACK;
+				if (lune.in(p))
+					c = DARKGREEN;
+				plot(at, c);
+			}
+
+			// Statistics.
 			DrawFPS(16, 16);
+
+			char msg[512];
+			snprintf(msg, sizeof msg, "rel freq: %.4f; quadrature: %.4f\n"
+				"size: %d; cap: %d.",
+				(double)lune.freq / lune.log.size(), lune.quadrature(),
+				(int)lune.log.size(), (int)lune.cap
+			);
+			DrawText(msg, 16, 40, 20, BLACK);
 		}
 		EndDrawing();
-
-		fr++;
 	}
 
 	CloseWindow();
 	return 0;
 }
 
-double Halton::next()
+void circ_axes(float w2v, Cf midpoint)
 {
-	x = d - n;
-	if (x == 1)
-		n = 1, d *= b;
-	else
+	// Plot the axes.
+	axes
+	(
+		midpoint,
+		w2v,
+		w2v * 1.if,
+		// How many tick marks?
+		1 + (int)(midpoint.real() / w2v),
+		// Scale factor.
+		1.f
+	);
+
+	// Plot the circles.
+	// (Setting up the lunes of Hippocrates).
+	Color c1fill = RED,
+		c1border = RED;
+	c1fill.a = 100;
+	Color c2fill = BLUE,
+		c2border = BLUE;
+	c2fill.a = 100;
+	float const circle2_radius = 1 / sqrtf(2);
+	circle(midpoint, 1.f * w2v, &c1fill, &c1border);
+	circle(midpoint + w2v * circle2_radius, w2v * circle2_radius, &c2fill, &c2border);
+}
+
+void Lune::advance()
+{
+	// Construct a point in the unit square in (0,1) x (0,1),
+		// then scale and translate it into the bounding square.
+	C p0 = C(h2.next(), h3.next()) - C(0.5, 0.5),
+		p = p0 * dim;
+
+	log.push_back(p);
+	if (log.size() > cap)
 	{
-		y = d / b;
-		while (x <= y)
-			y /= b;
-		n = (b + 1) * y - x;
+		if (in(log.front()))
+			freq--;
+		log.pop_front();
 	}
-	return n / (double)d;
+
+	if (in(p))
+		freq++;
 }
