@@ -55,13 +55,16 @@ struct Lune
 	{
 		using std::min;
 		using std::max;
-		// Starting from a rectangle, construct the bounding square.
+		// Locate the medians (midpoints) of a bounding rectangle.
 		double le = min(-1., c - r),
 			ri = max(1., c + r),
 			to = max(1., r),
 			bo = min(-1., -r);
-		dim = max(max(abs(le), abs(ri)),
-			max(abs(to), abs(bo))) * 2;
+		// Construct the midpoint of the left and right medians
+		// to center the bounding square.
+		m_xmidpoint = (le + ri) / 2;
+		// Compute the side length of a safe bounding square.
+		dim = max(ri - le, to - bo);
 	}
 	/// <summary>
 	/// Sample a point and update internal statistics.
@@ -83,6 +86,11 @@ struct Lune
 	/// </summary>
 	/// <returns></returns>
 	double dimension() const { return dim; }
+	/// <summary>
+	/// Recall the x-coordinate of the center of the bounding square.
+	/// </summary>
+	/// <returns></returns>
+	double xmidpoint() const { return m_xmidpoint; }
 	/// <summary>
 	/// Decide whether the point belongs to the left circle.
 	/// </summary>
@@ -124,6 +132,10 @@ private:
 	/// The positive side length of the bounding square.
 	/// </summary>
 	double dim{};
+	/// <summary>
+	/// Center of the bounding square.
+	/// </summary>
+	double m_xmidpoint{};
 };
 
 /// <summary>
@@ -148,7 +160,9 @@ int wWinMain(void* _0, void* _1, wchar_t const* _2, int _3)
 
 	while (!WindowShouldClose())
 	{
-		hippocrates.advance();
+		// Do a few times.
+		for (int i = 0; i < 100; i++)
+			hippocrates.advance();
 		Cf midpoint = Cf(GetScreenWidth() * 0.5f, GetScreenHeight() * 0.5f);
 
 		BeginDrawing();
@@ -162,7 +176,8 @@ int wWinMain(void* _0, void* _1, wchar_t const* _2, int _3)
 			{
 				Rectangle r{};
 				float w2vf = w2v;
-				r.x = (float)hippocrates.dimension() / -2 * w2vf + (float)midpoint.real();
+				r.x = (float)(hippocrates.dimension() / -2
+					+ hippocrates.xmidpoint()) * w2vf + (float)midpoint.real();
 				r.y = (float)hippocrates.dimension() / -2 * w2vf + (float)midpoint.imag();
 				r.width = (float)hippocrates.dimension() * w2vf;
 				r.height = (float)hippocrates.dimension() * w2vf;
@@ -233,7 +248,7 @@ void Lune::advance()
 	// Construct a point in the unit square in (0,1) x (0,1),
 	// then scale and translate it into the bounding square.
 	C p0 = C(h2.next(), h3.next()) - C(0.5, 0.5),
-		p = p0 * dim;
+		p = p0 * dim + m_xmidpoint;
 
 	// Logging, not important for the computation.
 	log.push_back(p);

@@ -1,5 +1,8 @@
 #pragma once
 
+/// <summary>
+/// Generation of the Halton low-discrepancy sequence for quasi-Monte Carlo quadrature.
+/// </summary>
 namespace halton {
 	/// <summary>
 	/// Generate a Halton sequence (algorithm is due to Wikipedia) of a given base (`b`).
@@ -10,9 +13,17 @@ namespace halton {
 	/// </summary>
 	class Halton
 	{
-		int n{ 0 }, d{ 1 }, x{}, y{}, b{};
+		unsigned n{ 0 }, d{ 1 }, x{}, y{}, b{};
 	public:
-		Halton(int b) : b(b) {}
+		/// <summary>
+		/// Initialize a sequence with the given prime base.
+		/// </summary>
+		/// <param name="b">Base (prime number).</param>
+		Halton(unsigned b) : b(b) {}
+		/// <summary>
+		/// Extract a term and advance the internal state.
+		/// </summary>
+		/// <returns></returns>
 		double next();
 	};
 };
