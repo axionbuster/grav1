@@ -17,49 +17,6 @@ struct Halton
 	double next();
 };
 
-/// <summary>
-/// A rectangle view-box.
-/// </summary>
-struct View
-{
-	/// <summary>
-	/// Lesser-coordinate corner (if width and height are positive).
-	/// 
-	/// In view coordinates.
-	/// </summary>
-	Cf at;
-	/// <summary>
-	/// Width and height (normally positive).
-	/// 
-	/// In view coordinates.
-	/// </summary>
-	Cf box;
-	/// <summary>
-	/// Convert from world coordinates to view coordinates
-	/// using the axis-aligned scale factor and translation.
-	/// </summary>
-	/// <param name="w"></param>
-	/// <returns></returns>
-	Cf w2v(Cf w) const
-	{
-		float x = w.real() * box.real() + at.real(),
-			y = w.imag() * box.imag() + at.imag();
-		return Cf(x, y);
-	}
-	/// <summary>
-	/// Convert from view coordinates to world coordinates
-	/// using the axis-aligned scale factor and translation.
-	/// </summary>
-	/// <param name="v"></param>
-	/// <returns></returns>
-	Cf v2w(Cf v) const
-	{
-		float x = (v.real() - at.real()) / box.real(),
-			y = (v.imag() - at.imag()) / box.imag();
-		return Cf(x, y);
-	}
-};
-
 static void plot(Cf v)
 {
 	Cf const dim(5.f, 5.f);
@@ -118,17 +75,27 @@ static void axis1(Cf v, Cf interval, int n, char const* format, double show_unit
 
 static void axes(Cf v, Cf re, Cf im, int n, double label = 0)
 {
-	axis1(v, re, n, "%.1f", label);
-	axis1(v, im, n, "%.1fi", label);
+	axis1(v, re, n, "%.2f", label);
+	axis1(v, im, n, "%.2fi", label);
+}
+
+static void circle(Cf o, float r, Color const* fill, Color const* border)
+{
+	Vector2 v{ o.real(), o.imag() };
+	if (fill)
+		DrawCircleV(v, r, *fill);
+	if (border)
+		DrawCircleLinesV(v, r, *border);
 }
 
 int wWinMain(void* _0, void* _1, wchar_t const* _2, int _3)
 {
+	// Dimensions of the unit square in world coordinates in view coordinates.
+	// (pixels per L).
+	float w2v = 100.f;
+
 	InitWindow(600, 600, "q2");
 	SetTargetFPS(60);
-
-	View view;
-	view.box = Cf(300.0f, 300.0f);
 
 	// To use Halton low-discrepancy sequences to fill up the unit square
 	// in n-space, use successive prime numbers (2, 3, 5, etc.) and
@@ -138,19 +105,11 @@ int wWinMain(void* _0, void* _1, wchar_t const* _2, int _3)
 
 	// Test rotating axes.
 	unsigned fr = 0;
-	float angular_velocity = +0.001f;
-	Cf const re0(100.f, 0.f), im0(0.f, 100.f);
 
 	while (!WindowShouldClose())
 	{
 		// Compute the midpoint.
 		Cf midpoint = Cf(GetScreenWidth() * 0.5f, GetScreenHeight() * 0.5f);
-		view.at = midpoint - view.box * 0.5f;
-
-		// Locate the axes.
-		Cf rot = std::polar(1.f, angular_velocity * fr),
-			re1 = re0 * rot,
-			im1 = im0 * rot;
 
 		// Update the low-discrepancy square.
 		world_halton.push_front(Cf((float)h2.next(), (float)h3.next()));
@@ -162,13 +121,35 @@ int wWinMain(void* _0, void* _1, wchar_t const* _2, int _3)
 			ClearBackground(WHITE);
 
 			// Plot the axes.
-			axes(midpoint, re1, im1, 3, 1.0);
+			axes
+			(
+				midpoint,
+				w2v,
+				w2v * 1.if,
+				// How many tick marks?
+				1 + (int)(midpoint.real() / w2v),
+				// Scale factor.
+				1.f
+			);
+
+			// Plot the circles.
+			// (Setting up the lunes of Hippocrates).
+			Color c1fill = RED,
+				c1border = RED;
+			c1fill.a = 100;
+			Color c2fill = BLUE,
+				c2border = BLUE;
+			c2fill.a = 100;
+			float const circle2_radius = 1 / sqrtf(2);
+			circle(midpoint, 1.f * w2v, &c1fill, &c1border);
+			circle(midpoint + w2v * circle2_radius, w2v * circle2_radius, &c2fill, &c2border);
 
 			// Plot the low-discrepancy square.
 			for (int i = (int)world_halton.size() - 1; i >= 0; i--)
 			{
 				auto const& world_point = world_halton[i];
-				auto const view_point = view.w2v(world_point);
+				auto const view_point = midpoint + Cf(world_point.real() * w2v,
+					world_point.imag() * w2v);
 				plot(view_point);
 			}
 
