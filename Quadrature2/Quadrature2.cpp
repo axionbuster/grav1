@@ -1,3 +1,12 @@
+// Demo.
+//
+// Expect to see: the area of the crescent (one side of the lune;
+// here, the right side) is equal to that of the 45-45-90 isosceles triangle
+// with vertices at (0, 0), (1/sqrt 2, 1/sqrt 2), and (1/sqrt 2, -1/sqrt 2),
+// which has an area of 1/2 square units.
+//
+// So you should see a quadrature of "0.5."
+
 #include <deque>
 
 #include "Header.h"
@@ -35,6 +44,8 @@ struct Lune
 	/// squared radius of the right circle.
 	/// 
 	/// The left circle is always the unit circle (radius 1) at the origin.
+	/// 
+	/// c &gt; 0.
 	/// </summary>
 	double c{}, rsq{};
 	/// <summary>
@@ -133,7 +144,7 @@ private:
 	/// </summary>
 	double dim{};
 	/// <summary>
-	/// Center of the bounding square.
+	/// Center of the bounding square (x-coordinate).
 	/// </summary>
 	double m_xmidpoint{};
 };
@@ -147,7 +158,7 @@ int wWinMain(void* _0, void* _1, wchar_t const* _2, int _3)
 	// (pixels per L).
 	float w2v = 100.f;
 
-	InitWindow(600, 600, "q2");
+	InitWindow(600, 600, "Quasi-Monte Carlo Quadrature");
 	SetTargetFPS(60);
 
 	// As a test case, use the Lune of Hippocrates.
@@ -158,11 +169,37 @@ int wWinMain(void* _0, void* _1, wchar_t const* _2, int _3)
 		1000
 	);
 
+	// To compute the running average at each frame.
+	std::deque<double> quadratures;
+
 	while (!WindowShouldClose())
 	{
-		// Do a few times.
+		// Live statistics.
+		double running_average{}, sample_stdev{};
+
+		// Do this a few times every frame.
 		for (int i = 0; i < 100; i++)
 			hippocrates.advance();
+
+		// Messy statistics...
+		quadratures.push_back(hippocrates.quadrature());
+		if (quadratures.size() > 100)
+			quadratures.pop_front();
+		for (int i = (int)(quadratures.size() - 1); i >= 0; i--)
+			running_average += quadratures[i];
+		running_average /= quadratures.size();
+		for (int i = (int)(quadratures.size() - 1); i >= 0; i--)
+		{
+			double a = quadratures[i] - running_average;
+			sample_stdev += a * a;
+		}
+		if (quadratures.size() > 1)
+			sample_stdev /= quadratures.size() - 1;
+		else
+			sample_stdev = 0;
+		sample_stdev = sqrt(sample_stdev);
+
+		// Graphical.
 		Cf midpoint = Cf(GetScreenWidth() * 0.5f, GetScreenHeight() * 0.5f);
 
 		BeginDrawing();
@@ -184,7 +221,7 @@ int wWinMain(void* _0, void* _1, wchar_t const* _2, int _3)
 				DrawRectangleLinesEx(r, 1.0f, BLACK);
 			}
 
-			// Plotting.
+			// Plot.
 			for (int i = (int)(hippocrates.log.size() - 1); i >= 0; i--)
 			{
 				auto const& p = hippocrates.log[i];
@@ -195,15 +232,18 @@ int wWinMain(void* _0, void* _1, wchar_t const* _2, int _3)
 				plot(at, c);
 			}
 
-			// Statistics.
+			// Show statistics.
 			DrawFPS(16, 16);
-			char msg[512];
-			snprintf(msg, sizeof msg, "rel freq: %.4f\nquadrature: %.4f\n"
-				"size: %d\ncap: %d\n"
-				"dim: %.4f",
+			char msg[800];
+			snprintf(msg, sizeof msg, "QMC Quadrature with Halton sequences - expect 0.5 u^2\n\n"
+				"rel freq: %.4f\nquadrature: %.4f u^2\n"
+				"# points: %d, dim: %.4f u\n\n"
+				"running average: %.3f u^2\nsample stdev: %.3f u^2\n(sampled last %d frame(s))",
 				(double)hippocrates.freq / hippocrates.log.size(), hippocrates.quadrature(),
-				(int)hippocrates.log.size(), (int)hippocrates.cap,
-				hippocrates.dimension()
+				(int)hippocrates.log.size(),
+				hippocrates.dimension(),
+				running_average, sample_stdev,
+				(int)quadratures.size()
 			);
 			DrawText(msg, 16, 40, 20, BLACK);
 		}
@@ -247,15 +287,14 @@ void Lune::advance()
 {
 	// Construct a point in the unit square in (0,1) x (0,1),
 	// then scale and translate it into the bounding square.
-	C p0 = C(h2.next(), h3.next()) - C(0.5, 0.5),
-		p = p0 * dim + m_xmidpoint;
+	C p0 = C(h2.next(), h3.next()) - C(0.5, 0.5);
+	C p = p0 * dim + m_xmidpoint;
 
 	// Logging, not important for the computation.
 	log.push_back(p);
 	if (log.size() > cap)
 	{
-		if (in(log.front()))
-			freq--;
+		if (in(log.front())) freq--;
 		log.pop_front();
 	}
 

@@ -46,9 +46,9 @@ static void axis1(Cf v, Cf interval, int n, char const* format, double show_unit
 		Vector2 text_dim = MeasureTextEx(font, text, font_size, spacing);
 		Cf text_dim_cf(text_dim.x, text_dim.y);
 
-		// Center.
+		// Center and position
 		Cf text_loc = at - text_dim_cf * .5f,
-			text_loc_v = v + text_loc;
+			text_loc_v = v + text_loc + Cf(8.f, -8.f);
 		Vector2 text_loc_v2{ text_loc_v.real(), text_loc_v.imag() };
 
 		// Print.
@@ -58,8 +58,8 @@ static void axis1(Cf v, Cf interval, int n, char const* format, double show_unit
 
 void vis::axes(Cf v, Cf re, Cf im, int n, double label)
 {
-	axis1(v, re, n, "%.2f", label);
-	axis1(v, im, n, "%.2fi", label);
+	axis1(v, re, n, "%.0f", label);
+	axis1(v, im, n, "%.0fi", label);
 }
 
 void vis::circle(Cf o, float r, Color const* fill, Color const* border)
