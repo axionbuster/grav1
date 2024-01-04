@@ -1,153 +1,13 @@
-// Demo.
-//
-// Expect to see: the area of the crescent (one side of the lune;
-// here, the right side) is equal to that of the 45-45-90 isosceles triangle
-// with vertices at (0, 0), (1/sqrt 2, 1/sqrt 2), and (1/sqrt 2, -1/sqrt 2),
-// which has an area of 1/2 square units.
-//
-// So you should see a quadrature of "0.5."
+// Demo. (Under major restructuring right now.)
 
 #include <deque>
 
 #include "Header.h"
 #include "Q2vis.h"
-#include "Halton.h"
+#include "Lune.h"
 
 using namespace vis;
-using namespace halton;
-
-/// <summary>
-/// Plot the circles and the axes.
-/// </summary>
-/// <param name="w2v"></param>
-/// <param name="midpoint"></param>
-void circ_axes(float w2v, Cf midpoint);
-
-/// <summary>
-/// Interactive quadrature of the area of the one-sided lune (crescent).
-/// 
-/// When a circle with a given center on the x-axis and radius
-/// intersects with the unit circle at the origin, find the area
-/// of the circle on the right except that part which belongs to
-/// the central unit circle, if that intersecting region exists (or else, zero).
-/// </summary>
-struct Lune
-{
-	/// <summary>
-	/// Sequence of points that have been recently sampled (FIFO).
-	/// 
-	/// Back = recent, front = later.
-	/// </summary>
-	std::deque<C> log;
-	/// <summary>
-	/// x-coordinate of the center of the right circle;
-	/// squared radius of the right circle.
-	/// 
-	/// The left circle is always the unit circle (radius 1) at the origin.
-	/// 
-	/// c &gt; 0.
-	/// </summary>
-	double c{}, rsq{};
-	/// <summary>
-	/// The number of points satisfying the criteria;
-	/// number of points to keep in the log.
-	/// </summary>
-	int freq{}, cap{};
-	/// <summary>
-	/// Set up the computation of the area of the right-side of the lune
-	/// (crescent) by the intersection of the unit circle at the origin
-	/// and a second circle centered at (c, 0) with r > 0 as the radius.
-	/// </summary>
-	/// <param name="c">x-coordinate of the center of the second circle.</param>
-	/// <param name="r">Positive radius of the second circle.</param>
-	/// <param name="cap">Number of points to hold in history queue (`log`).</param>
-	Lune(double c, double r, int cap = 100)
-		: h2(2), h3(3), c(c), rsq(r* r), cap(cap)
-	{
-		using std::min;
-		using std::max;
-		// Locate the medians (midpoints) of a bounding rectangle.
-		double le = min(-1., c - r),
-			ri = max(1., c + r),
-			to = max(1., r),
-			bo = min(-1., -r);
-		// Construct the midpoint of the left and right medians
-		// to center the bounding square.
-		m_xmidpoint = (le + ri) / 2;
-		// Compute the side length of a safe bounding square.
-		dim = max(ri - le, to - bo);
-	}
-	/// <summary>
-	/// Sample a point and update internal statistics.
-	/// </summary>
-	void advance();
-	/// <summary>
-	/// Once at least one point has been sampled,
-	/// compute the quadrature by inspection of the internal statistics.
-	/// 
-	/// (Simple arithmetic).
-	/// </summary>
-	/// <returns></returns>
-	double quadrature() const
-	{
-		return dim * dim * freq / log.size();
-	}
-	/// <summary>
-	/// Recall the side length of the bounding square.
-	/// </summary>
-	/// <returns></returns>
-	double dimension() const { return dim; }
-	/// <summary>
-	/// Recall the x-coordinate of the center of the bounding square.
-	/// </summary>
-	/// <returns></returns>
-	double xmidpoint() const { return m_xmidpoint; }
-	/// <summary>
-	/// Decide whether the point belongs to the left circle.
-	/// </summary>
-	/// <param name="p"></param>
-	/// <returns></returns>
-	static bool left_static(C p) { return std::norm(p) < 1.0; }
-	/// <summary>
-	/// Decide whether the point belongs to the left circle.
-	/// </summary>
-	/// <param name="p"></param>
-	/// <returns></returns>
-	bool left(C p) const { return left_static(p); }
-	/// <summary>
-	/// Decide whether the point belongs to the right circle.
-	/// </summary>
-	/// <param name="p"></param>
-	/// <returns></returns>
-	bool right(C p) const { return std::norm(p - c) < rsq; }
-	/// <summary>
-	/// Decide whether the point belongs to the right circle
-	/// but not the left circle (used for quadrature).
-	/// </summary>
-	/// <param name="p"></param>
-	/// <returns></returns>
-	bool in(C p) const { return !left(p) && right(p); }
-private:
-	/// <summary>
-	/// Internal low-discrepancy sequences used to evenly generate
-	/// points in the constructed bounding square, of successive
-	/// prime numbers as the "bases" (peculiar details of the algorithm).
-	/// 
-	/// For each "random" point generated with these:
-	/// First a term at h2 is chosen (0 &lt; [h2] &lt; 1), and is turned into the
-	/// x-coordinate of that point. The same is done for h3, which becomes
-	/// the y-coordinate of that point.
-	/// </summary>
-	Halton h2, h3;
-	/// <summary>
-	/// The positive side length of the bounding square.
-	/// </summary>
-	double dim{};
-	/// <summary>
-	/// Center of the bounding square (x-coordinate).
-	/// </summary>
-	double m_xmidpoint{};
-};
+using namespace lune;
 
 /// <summary>
 /// The entry point (Windows).
@@ -156,149 +16,70 @@ int wWinMain(void* _0, void* _1, wchar_t const* _2, int _3)
 {
 	// Dimensions of the unit square in world coordinates in view coordinates.
 	// (pixels per L).
-	float w2v = 100.f;
+	float w2v = 75.f;
 
-	InitWindow(600, 600, "Quasi-Monte Carlo Quadrature");
+	InitWindow(600, 600, "Quasi-Monte Carlo Quadrature (WIP)");
 	SetTargetFPS(60);
 
-	// As a test case, use the Lune of Hippocrates.
-	Lune hippocrates(
-		// Center of the other circle; radius thereof.
-		1 / sqrt(2), 1 / sqrt(2),
-		// Capacity (number of evaluations to hold in queue).
-		1000
-	);
-
-	// To compute the running average at each frame.
-	std::deque<double> quadratures;
+	C c0(0, 1), c1(1, 0);
+	double r0(1.0), r1(2.0);
+	int cap = 100;
+	GenericLune calculation(c0, r0, c1, r1, cap);
 
 	while (!WindowShouldClose())
 	{
-		// Live statistics.
-		double running_average{}, sample_stdev{};
+		Cf center_px = Cf(GetScreenWidth() * 0.5f, GetScreenHeight() * 0.5f);
 
-		// Do this a few times every frame.
-		for (int i = 0; i < 100; i++)
-			hippocrates.advance();
-
-		// Messy statistics...
-		quadratures.push_back(hippocrates.quadrature());
-		if (quadratures.size() > 100)
-			quadratures.pop_front();
-		for (int i = (int)(quadratures.size() - 1); i >= 0; i--)
-			running_average += quadratures[i];
-		running_average /= quadratures.size();
-		for (int i = (int)(quadratures.size() - 1); i >= 0; i--)
-		{
-			double a = quadratures[i] - running_average;
-			sample_stdev += a * a;
-		}
-		if (quadratures.size() > 1)
-			sample_stdev /= quadratures.size() - 1;
-		else
-			sample_stdev = 0;
-		sample_stdev = sqrt(sample_stdev);
-
-		// Graphical.
-		Cf midpoint = Cf(GetScreenWidth() * 0.5f, GetScreenHeight() * 0.5f);
+		// Not too slow, not too fast.
+		for (int i = cap / 4; i >= 0; i--) // (ceiling)
+			calculation.lune.advance();
 
 		BeginDrawing();
 		{
 			ClearBackground(WHITE);
 
-			// Some decor...
-			circ_axes(w2v, midpoint);
-
-			// The chosen square (outlines)...
+			// Crosshair at the origin.
 			{
-				Rectangle r{};
-				float w2vf = w2v;
-				r.x = (float)(hippocrates.dimension() / -2
-					+ hippocrates.xmidpoint()) * w2vf + (float)midpoint.real();
-				r.y = (float)hippocrates.dimension() / -2 * w2vf + (float)midpoint.imag();
-				r.width = (float)hippocrates.dimension() * w2vf;
-				r.height = (float)hippocrates.dimension() * w2vf;
-				DrawRectangleLinesEx(r, 1.0f, BLACK);
+				Cf a = 5, b = 1.f;
+				for (int i = 0; i < 4; i++)
+				{
+					Cf base = center_px + b, tip = base + a;
+					if (i == 0 || i == 1)
+						base -= b, tip -= b; // layout bug
+					DrawLineV(v2(base), v2(tip), BLACK);
+					a *= 1.if, b *= 1.if;
+				}
 			}
 
-			// Plot.
-			for (int i = (int)(hippocrates.log.size() - 1); i >= 0; i--)
+			// Draw the bounding rectangle.
 			{
-				auto const& p = hippocrates.log[i];
-				auto const at = downgrade(p) * w2v + midpoint;
-				Color c = BLACK;
-				if (hippocrates.in(p))
-					c = DARKGREEN;
-				plot(at, c);
+				auto rec = calculation.bounding();
+				rec.transform(w2v, center_px);
+#define side(m, n) DrawLineV(v2(rec.c[m]), v2(rec.c[n]), BLACK)
+				side(0, 1), side(1, 2), side(2, 3), side(3, 0);
+#undef side
+			}
+
+			// The circles.
+			{
+				Cf c0_prime = downgrade(c0) * w2v + center_px;
+				Cf c1_prime = downgrade(c1) * w2v + center_px;
+				float r0_prime = r0 * w2v, r1_prime = r1 * w2v;
+				auto color0 = RED, color1 = BLUE;
+				constexpr auto alpha256 = 100;
+				color0.a = alpha256, color1.a = alpha256;
+#define circle(n) DrawCircleLinesV(v2(c##n##_prime), r##n##_prime, color##n), \
+DrawCircleV(v2(c##n##_prime), r##n##_prime, color##n)
+				circle(0), circle(1);
+#undef circle
 			}
 
 			// Show statistics.
 			DrawFPS(16, 16);
-			char msg[800];
-			snprintf(msg, sizeof msg, "QMC Quadrature with Halton sequences - expect 0.5 u^2\n\n"
-				"rel freq: %.4f\nquadrature: %.4f u^2\n"
-				"# points: %d, dim: %.4f u\n\n"
-				"running average: %.3f u^2\nsample stdev: %.3f u^2\n(sampled last %d frame(s))",
-				(double)hippocrates.freq / hippocrates.log.size(), hippocrates.quadrature(),
-				(int)hippocrates.log.size(),
-				hippocrates.dimension(),
-				running_average, sample_stdev,
-				(int)quadratures.size()
-			);
-			DrawText(msg, 16, 40, 20, BLACK);
 		}
 		EndDrawing();
 	}
 
 	CloseWindow();
 	return 0;
-}
-
-void circ_axes(float w2v, Cf midpoint)
-{
-	// Plot the axes.
-	axes
-	(
-		midpoint,
-		w2v,
-		w2v * 1.if,
-		// How many tick marks?
-		1 + (int)(midpoint.real() / w2v),
-		// Scale factor.
-		1.f
-	);
-
-	// Plot the circles.
-	// (Setting up the lunes of Hippocrates).
-	Color c1fill = RED,
-		c1border = RED;
-	c1fill.a = 100; // Transparency (low = transparent; proportion out of 256 parts).
-	Color c2fill = BLUE,
-		c2border = BLUE;
-	c2fill.a = 100;
-	// Radius and position of the second circle is hard-coded for the case of
-	// the lune of Hippocrates.
-	float const circle2_radius = 1 / sqrtf(2);
-	circle(midpoint, 1.f * w2v, &c1fill, &c1border);
-	circle(midpoint + w2v * circle2_radius, w2v * circle2_radius, &c2fill, &c2border);
-}
-
-void Lune::advance()
-{
-	// Construct a point in the unit square in (0,1) x (0,1),
-	// then scale and translate it into the bounding square.
-	C p0 = C(h2.next(), h3.next()) - C(0.5, 0.5);
-	C p = p0 * dim + m_xmidpoint;
-
-	// Logging, not important for the computation.
-	log.push_back(p);
-	if (log.size() > cap)
-	{
-		if (in(log.front())) freq--;
-		log.pop_front();
-	}
-
-	// Monte Carlo.
-	if (in(p))
-		freq++;
 }

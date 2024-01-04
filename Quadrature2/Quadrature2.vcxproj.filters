@@ -24,6 +24,9 @@
     <ClCompile Include="Halton.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="Lune.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
@@ -36,6 +39,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Halton.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Lune.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
