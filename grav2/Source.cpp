@@ -52,8 +52,8 @@ int wWinMain(void* _0, void* _1, void* _2, int _3)
 	{
 		// Generate this many (n) particles.
 		int constexpr n = 100;
-		auto seed = []() { std::random_device dev; return dev(); }();
-		auto rng = std::mt19937(seed);
+		// auto seed = []() { std::random_device dev; return dev(); }();
+		auto rng = std::mt19937(1234);
 		C const rot = std::polar(1., (double)PI / 6);
 		for (int i = n - 1; i >= 0; i--)
 		{

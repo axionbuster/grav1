@@ -134,8 +134,7 @@ private:
 	/// the hypothetical location z.
 	/// </summary>
 	/// <param name="i">Valid index of the particle</param>
-	/// <param name="z">The particle's hypothetical location</param>
 	/// <returns>Acceleration, or force divided by the particle's mass</returns>
-	C accelerate(int i, C const& z) const;
+	C accelerate(int i) const;
 };
 
