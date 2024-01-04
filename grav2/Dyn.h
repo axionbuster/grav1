@@ -47,7 +47,7 @@ public:
 		/// <summary>
 		/// Compute the force on the left (first) particle by the right (second) particle.
 		/// </summary>
-		std::function<C(Entry const&, Entry const&)> pair_force;
+		std::function<C(Param const &par, Entry const&, Entry const&)> pair_force;
 	};
 
 	typedef std::vector<Entry> V;
@@ -58,18 +58,18 @@ public:
 	Dyn() = default;
 	Dyn(Param const& par) : par(par) {}
 	Dyn(Dyn const& dyn) = default;
-	Dyn(Dyn&& dyn) noexcept : par(dyn.par), tab(std::move(dyn.tab)), drv(dyn.drv), copy(), mass(dyn.mass) {}
+	Dyn(Dyn&& dyn) noexcept : par(dyn.par), tab(std::move(dyn.tab)), drv(dyn.drv), copy(), m_mass(dyn.m_mass) {}
 	Dyn& operator=(Dyn const& dyn) noexcept
 	{
 		if (&dyn == this) return *this;
-		par = dyn.par, tab = dyn.tab, drv = dyn.drv, mass = dyn.mass;
+		par = dyn.par, tab = dyn.tab, drv = dyn.drv, m_mass = dyn.m_mass;
 		copy = V();
 		return *this;
 	}
 	Dyn& operator=(Dyn&& dyn) noexcept
 	{
 		if (&dyn == this) return *this;
-		par = dyn.par, drv = dyn.drv, mass = dyn.mass;
+		par = dyn.par, drv = dyn.drv, m_mass = dyn.m_mass;
 		tab = std::move(dyn.tab);
 		copy = V();
 		return *this;
@@ -115,6 +115,12 @@ public:
 	/// <returns></returns>
 	int n() const { return (int)tab.size(); }
 
+	/// <summary>
+	/// Recall the total mass of particles.
+	/// </summary>
+	/// <returns></returns>
+	double mass() const { return m_mass; }
+
 private:
 	/// <summary>
 	/// A copy of `tab` made at different times by different
@@ -125,7 +131,7 @@ private:
 	/// <summary>
 	/// Sum of the masses of all particles.
 	/// </summary>
-	double mass{ 0 };
+	double m_mass{ 0 };
 
 	/// <summary>
 	/// Compute the acceleration felt by particle at index `i` if it were at

@@ -4,17 +4,15 @@ using std::swap;
 
 void Dyn::precompute()
 {
-	int n = this->n();
 	copy = tab;
-	for (int i = n - 1; i >= 0; i--) mass += copy[i].m, copy[i].a = accelerate(i, copy[i].z);
+	for (int i = n() - 1; i >= 0; i--) m_mass += copy[i].m, copy[i].a = accelerate(i, copy[i].z);
 	swap(tab, copy);
 }
 
 void Dyn::step()
 {
-	int n = this->n();
 	copy = tab;
-	for (int i = n - 1; i >= 0; i--)
+	for (int i = n() - 1; i >= 0; i--)
 	{
 		auto& t = copy[i];
 		// Method of leapfrog integration for synchronous velocities.
@@ -36,7 +34,7 @@ void Dyn::bias()
 #define t tab[i - 1]
 #define put(avg, term) avg += ((term) - avg) / (double)i
 	for (i = 1; i <= n; i++) put(zcm, t.z * t.m), put(vcm, t.v * t.m);
-	zcm /= mass, vcm /= mass;
+	zcm /= m_mass, vcm /= m_mass;
 	for (i = 1; i <= n; i++) t.z -= zcm, t.v -= vcm;
 #undef put
 #undef t
@@ -53,7 +51,7 @@ C Dyn::accelerate(int i, C const& z) const
 {
 	if (!drv.pair_force) return 0;
 	Entry e(tab[i]); e.z = z;
-	int n = this->n(); C f;
-	for (int j = n - 1; j >= 0; j--) if (i != j) f += drv.pair_force(e, tab[j]);
+	C f;
+	for (int j = n() - 1; j >= 0; j--) if (i != j) f += drv.pair_force(par, e, tab[j]);
 	return f / e.m;
 }
