@@ -15,10 +15,6 @@ public:
 	struct Param
 	{
 		/// <summary>
-		/// Universal gravitational constant (units: LLL/T/T/M).
-		/// </summary>
-		double g{};
-		/// <summary>
 		/// Time step (T per step).
 		/// </summary>
 		double dt{};
@@ -47,7 +43,7 @@ public:
 		/// <summary>
 		/// Compute the force on the left (first) particle by the right (second) particle.
 		/// </summary>
-		std::function<C(Param const &par, Entry const&, Entry const&)> pair_force;
+		std::function<C(Entry const&, Entry const&)> pair_force;
 	};
 
 	typedef std::vector<Entry> V;

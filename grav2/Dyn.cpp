@@ -52,6 +52,6 @@ C Dyn::accelerate(int i, C const& z) const
 	if (!drv.pair_force) return 0;
 	Entry e(tab[i]); e.z = z;
 	C f;
-	for (int j = n() - 1; j >= 0; j--) if (i != j) f += drv.pair_force(par, e, tab[j]);
+	for (int j = n() - 1; j >= 0; j--) if (i != j) f += drv.pair_force(e, tab[j]);
 	return f / e.m;
 }
