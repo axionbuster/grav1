@@ -53,25 +53,29 @@ public:
 	typedef std::vector<Entry> V;
 
 	// For these:
-	// I don't copy `drv` (function table) or `copy` (temporary copy of `tab` made at different times).
-	// It also doesn't make sense to copy `par` (parameter array) because it's bitwise copyable.
+	// Anything except `tab` doesn't make sense to be "moved" without being copied.
 
+	Dyn() = default;
 	Dyn(Param const& par) : par(par) {}
-	Dyn(Dyn const& dyn) : par(dyn.par), tab(dyn.tab), drv(dyn.drv), copy() {}
-	Dyn(Dyn&& dyn) noexcept : par(dyn.par), tab(std::move(dyn.tab)), drv(dyn.drv), copy() {}
+	Dyn(Dyn const& dyn) = default;
+	Dyn(Dyn&& dyn) noexcept : par(dyn.par), tab(std::move(dyn.tab)), drv(dyn.drv), copy(), mass(dyn.mass) {}
 	Dyn& operator=(Dyn const& dyn) noexcept
 	{
 		if (&dyn == this) return *this;
-		par = dyn.par, tab = dyn.tab, drv = dyn.drv;
+		par = dyn.par, tab = dyn.tab, drv = dyn.drv, mass = dyn.mass;
+		copy = V();
 		return *this;
 	}
 	Dyn& operator=(Dyn&& dyn) noexcept
 	{
 		if (&dyn == this) return *this;
-		par = dyn.par, drv = dyn.drv;
+		par = dyn.par, drv = dyn.drv, mass = dyn.mass;
 		tab = std::move(dyn.tab);
+		copy = V();
 		return *this;
 	}
+	Entry& operator[](int i) { return tab[i]; }
+	Entry const& operator[](int i) const { return tab[i]; }
 
 	/// <summary>
 	/// Exposed simulation parameters.
@@ -88,7 +92,8 @@ public:
 	Driver drv;
 
 	/// <summary>
-	/// Precompute all accelerations before the first iteration.
+	/// 1. Find and store the total mass.
+	/// 2. Precompute all accelerations before the first iteration.
 	/// </summary>
 	void precompute();
 
@@ -116,6 +121,11 @@ private:
 	/// method calls. Only valid within that method call who made it.
 	/// </summary>
 	V copy;
+
+	/// <summary>
+	/// Sum of the masses of all particles.
+	/// </summary>
+	double mass{ 0 };
 
 	/// <summary>
 	/// Compute the acceleration felt by particle at index `i` if it were at
