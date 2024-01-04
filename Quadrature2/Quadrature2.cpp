@@ -72,7 +72,7 @@ int wWinMain(void* _0, void* _1, wchar_t const* _2, int _3)
 			}
 			StatSummary s{};
 			s.mean_relfreq = m1r, s.mean_quadrature = m1q;
-			if (i) s.s_stdev_relfreq = m2r / (i - 1), s.s_stdev_quadrature = m2q / (i - 1);
+			if (i > 1) s.s_stdev_relfreq = m2r / (i - 1), s.s_stdev_quadrature = m2q / (i - 1);
 			return s;
 		};
 
