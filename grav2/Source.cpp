@@ -40,8 +40,8 @@ constexpr double G = 0.05;
 C newton_gravity(Dyn::Entry const& l, Dyn::Entry const& r)
 {
 	C s = r.z - l.z; double as = abs(s);
-	C a = G * r.m * (1 / as / as / as) * s;
-	return isfinite(a.real()) && isfinite(a.imag()) ? a : 0;
+	C f = G * l.m * r.m * (1 / as / as / as) * s;
+	return isfinite(f.real()) && isfinite(f.imag()) ? f : 0;
 }
 
 int wWinMain(void* _0, void* _1, void* _2, int _3)
@@ -54,7 +54,7 @@ int wWinMain(void* _0, void* _1, void* _2, int _3)
 		int constexpr n = 100;
 		// auto seed = []() { std::random_device dev; return dev(); }();
 		auto rng = std::mt19937(1234);
-		C const rot = std::polar(1., (double)PI / 6);
+		C const rot = std::polar(1., PI64 / 6);
 		for (int i = n - 1; i >= 0; i--)
 		{
 			typedef std::uniform_real_distribution<> D;
