@@ -2,7 +2,7 @@
 
 void vis::plot(Cf v, Color c)
 {
-	Cf const dim(5.f, 5.f);
+	Cf const dim(3.f, 3.f); // pixels (side length)
 	v -= dim * 0.5f;
 	Vector2 v2{ v.real(), v.imag() },
 		dim2{ dim.real(), dim.imag() };
