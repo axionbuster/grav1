@@ -18,9 +18,6 @@
     <ClCompile Include="Quadrature2.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Q2vis.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="Halton.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>

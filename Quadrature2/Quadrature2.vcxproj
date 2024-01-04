@@ -129,7 +129,6 @@
   <ItemGroup>
     <ClCompile Include="Halton.cpp" />
     <ClCompile Include="Lune.cpp" />
-    <ClCompile Include="Q2vis.cpp" />
     <ClCompile Include="Quadrature2.cpp" />
   </ItemGroup>
   <ItemGroup>
