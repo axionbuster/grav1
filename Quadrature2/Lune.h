@@ -73,26 +73,26 @@ namespace lune {
 		/// </summary>
 		/// <param name="p"></param>
 		/// <returns></returns>
-		static bool left_static(C p) { return std::norm(p) < 1.0; }
+		static bool left_static(C const& p) { return std::norm(p) < 1.0; }
 		/// <summary>
 		/// Decide whether the point belongs to the left circle.
 		/// </summary>
 		/// <param name="p"></param>
 		/// <returns></returns>
-		bool left(C p) const { return left_static(p); }
+		bool left(C const& p) const { return left_static(p); }
 		/// <summary>
 		/// Decide whether the point belongs to the right circle.
 		/// </summary>
 		/// <param name="p"></param>
 		/// <returns></returns>
-		bool right(C p) const { return std::norm(p - c) < rsq; }
+		bool right(C const& p) const { return std::norm(p - c) < rsq; }
 		/// <summary>
 		/// Decide whether the point belongs to the right circle
 		/// but not the left circle (used for quadrature).
 		/// </summary>
 		/// <param name="p"></param>
 		/// <returns></returns>
-		bool in(C p) const { return !left(p) && right(p); }
+		bool in(C const& p) const { return !left(p) && right(p); }
 		/// <summary>
 		/// Replace the internal Halton sequences with the given sequences.
 		/// </summary>
@@ -156,7 +156,7 @@ namespace lune {
 		/// <param name="c1">Center of the right circle.</param>
 		/// <param name="r1">Radius of the right circle (non-zero).</param>
 		/// <param name="cap">See Lune.</param>
-		GenericLune(C c0, double r0, C c1, double r1, int cap = 100);
+		GenericLune(C const& c0, double r0, C const& c1, double r1, int cap = 100);
 		/// <summary>
 		/// Four corners of the bounding square after the inverse transformation.
 		/// </summary>
@@ -171,7 +171,7 @@ namespace lune {
 			/// </summary>
 			/// <param name="homt"></param>
 			/// <param name="tr"></param>
-			void transform(C homt, C tr = 0);
+			void transform(C const& homt, C const& tr = 0);
 		};
 		/// <summary>
 		/// Compute the four corners of the bounding square.
@@ -185,6 +185,6 @@ namespace lune {
 		/// </summary>
 		/// <param name="point">A point understood by `lune`.</param>
 		/// <returns>The same point in the original coordinate system.</returns>
-		C invert(C point) const;
+		C invert(C const& point) const;
 	};
 }

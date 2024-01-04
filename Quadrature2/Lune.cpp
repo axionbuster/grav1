@@ -35,11 +35,10 @@ void Lune::advance()
 	log.push_back(p);
 
 	// Monte Carlo.
-	if (in(p))
-		freq++;
+	if (in(p)) freq++;
 }
 
-void GenericLune::BoundingSquare::transform(C homt, C tr)
+void GenericLune::BoundingSquare::transform(C const& homt, C const& tr)
 {
 #define par(op, x) c[0] op x, c[1] op x, c[2] op x, c[3] op x
 	par(*=, homt);
@@ -47,13 +46,14 @@ void GenericLune::BoundingSquare::transform(C homt, C tr)
 #undef par
 }
 
-GenericLune::GenericLune(C c0, double r0, C c1, double r1, int cap)
+GenericLune::GenericLune(C const& c0, double r0, C const& c1, double r1, int cap)
 	: c0(c0), r0(r0), c1(c1), r1(r1), lune(0, 0)
 {
-	c1 -= c0;
-	double const ac1 = abs(c1);
+	C c1a(c1);
+	c1a -= c0;
+	double const ac1 = abs(c1a);
 	tr = c0;
-	homt = r0 / ac1 * c1;
+	homt = r0 / ac1 * c1a;
 	lune = Lune(ac1 / r0, r1 / r0, cap);
 }
 
@@ -70,7 +70,7 @@ GenericLune::BoundingSquare GenericLune::bounding() const
 	return sq;
 }
 
-C GenericLune::invert(C point) const
+C GenericLune::invert(C const& point) const
 {
 	return point * homt + tr;
 }
