@@ -32,16 +32,24 @@ int wWinMain(void* _0, void* _1, wchar_t const* _2, int _3)
 	// Frame number
 	unsigned fr = 0;
 
+	// For the sources of "randomness" (in fact not random for fast convergence),
+	// pick up where I left off.
+	halton::Halton h2(2), h3(3);
+
 	while (!WindowShouldClose())
 	{
+		using std::move;
+
 		Cf center_px = Cf(GetScreenWidth() * 0.5f, GetScreenHeight() * 0.5f);
 
 		C const c0 = orig_c0 * std::polar(1., omega * fr);
 		C const c1 = orig_c1 * std::polar(1., omega * fr);
 		GenericLune calculation(c0, r0, c1, r1, cap);
 
+		calculation.lune.swap_halton(move(h2), move(h3));
 		for (int i = 0; i < cap; i++)
 			calculation.lune.advance();
+		calculation.lune.swap_halton(move(h2), move(h3));
 
 		BeginDrawing();
 		{

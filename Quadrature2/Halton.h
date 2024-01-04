@@ -11,7 +11,7 @@ namespace halton {
 	/// in n-space, use successive prime numbers (2, 3, 5, etc.) and
 	/// generate x, y, z, etc. coordinates from these individual streams.
 	/// </summary>
-	class Halton
+	struct Halton
 	{
 		unsigned n{ 0 }, d{ 1 }, x{}, y{}, b{};
 	public:

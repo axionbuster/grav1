@@ -93,6 +93,17 @@ namespace lune {
 		/// <param name="p"></param>
 		/// <returns></returns>
 		bool in(C p) const { return !left(p) && right(p); }
+		/// <summary>
+		/// Replace the internal Halton sequences with the given sequences.
+		/// </summary>
+		/// <param name="h2"></param>
+		/// <param name="h3"></param>
+		void swap_halton(halton::Halton&& h2, halton::Halton&& h3)
+		{
+			using std::swap;
+			swap(this->h2, h2);
+			swap(this->h3, h3);
+		}
 	private:
 		/// <summary>
 		/// Internal low-discrepancy sequences used to evenly generate
