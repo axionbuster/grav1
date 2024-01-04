@@ -44,7 +44,7 @@ int wWinMain(void* _0, void* _1, wchar_t const* _2, int _3)
 		double relfreq{}, quadrature{};
 	};
 	std::deque<Stat> stats;
-	int const stats_cap = 500;
+	int const stats_cap = 2000;
 	auto const put_stat = [&](Stat const& s)
 		{
 			if (stats.size() >= stats_cap) stats.pop_front();
