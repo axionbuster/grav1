@@ -7,6 +7,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "grav1", "grav1\grav1.vcxpro
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Quadrature2", "Quadrature2\Quadrature2.vcxproj", "{F6CF9352-7867-41EF-8719-28BC1B89D125}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "grav2", "grav2\grav2.vcxproj", "{2F2BA1AD-71C9-4215-A4BD-845E6FA97779}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -31,6 +33,14 @@ Global
 		{F6CF9352-7867-41EF-8719-28BC1B89D125}.Release|x64.Build.0 = Release|x64
 		{F6CF9352-7867-41EF-8719-28BC1B89D125}.Release|x86.ActiveCfg = Release|Win32
 		{F6CF9352-7867-41EF-8719-28BC1B89D125}.Release|x86.Build.0 = Release|Win32
+		{2F2BA1AD-71C9-4215-A4BD-845E6FA97779}.Debug|x64.ActiveCfg = Debug|x64
+		{2F2BA1AD-71C9-4215-A4BD-845E6FA97779}.Debug|x64.Build.0 = Debug|x64
+		{2F2BA1AD-71C9-4215-A4BD-845E6FA97779}.Debug|x86.ActiveCfg = Debug|Win32
+		{2F2BA1AD-71C9-4215-A4BD-845E6FA97779}.Debug|x86.Build.0 = Debug|Win32
+		{2F2BA1AD-71C9-4215-A4BD-845E6FA97779}.Release|x64.ActiveCfg = Release|x64
+		{2F2BA1AD-71C9-4215-A4BD-845E6FA97779}.Release|x64.Build.0 = Release|x64
+		{2F2BA1AD-71C9-4215-A4BD-845E6FA97779}.Release|x86.ActiveCfg = Release|Win32
+		{2F2BA1AD-71C9-4215-A4BD-845E6FA97779}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
