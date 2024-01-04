@@ -27,12 +27,12 @@ void Lune::advance()
 	C p = p0 * dim + m_xmidpoint;
 
 	// Logging, not important for the computation.
-	log.push_back(p);
-	if (log.size() > cap)
+	if (log.size() >= cap)
 	{
 		if (in(log.front())) freq--;
 		log.pop_front();
 	}
+	log.push_back(p);
 
 	// Monte Carlo.
 	if (in(p))

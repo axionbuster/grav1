@@ -151,8 +151,9 @@ DrawCircleV(v2(c##n##_prime), r##n##_prime, color##n)
 
 			DrawFPS(16, 16);
 			char msg[999];
-			snprintf(msg, sizeof(msg), "%d-frame statistics\nrelfreq: %.3f (stdev: %.5f)\n"
-				"quadrature: %.3f (stdev: %.3f)\n"
+			snprintf(msg, sizeof(msg), "%d-frame statistics\n"
+				"relfreq\n\tmean: %.3f\n\tstdev: %.5f\n"
+				"quadrature\n\tmean: %.3f\n\tstdev: %.3f\n"
 				"(sample stdev; each frame)",
 				(int)stats.size(),
 				summary.mean_relfreq, summary.s_stdev_relfreq,
