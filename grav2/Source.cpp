@@ -122,22 +122,43 @@ static Dyn make()
 #undef sca
 			dyn.tab.push_back(e);
 		}
+		dyn.drv.pair_force = newton_gravity;
 		// It is here where all accelerations are computed
 		// for before the first iteration, and where the
 		// the total mass (dyn.m_mass) is computed.
 		dyn.precompute();
 	}
+	return dyn;
+}
+
+static Dyn make_set1()
+{
+	Dyn dyn;
+	dyn.par.dt = 0.05;
+	Dyn::Entry e0, e1;
+	e0.z = -10., e1.z = -e0.z;
+	e0.m = 30., e1.m = e0.m;
+	e0.r = 10., e1.r = e0.r;
+	Dyn::Entry e2(e1);
+	e2.z = 20.;
+	e2.r /= 4;
+	dyn.tab.push_back(e0);
+	dyn.tab.push_back(e1);
+	dyn.tab.push_back(e2);
 	dyn.drv.pair_force = newton_gravity;
+	dyn.precompute();
 	return dyn;
 }
 
 int wWinMain(void* _0, void* _1, void* _2, int _3)
 {
+	auto sim = []() { return make_set1(); };
+
 	// Simulation (dyn)
-	Dyn dyn = make();
+	Dyn dyn = sim();
 
 	// Rendering
-	float constexpr px_per_l = 1.f;
+	float constexpr px_per_l = 2.f;
 
 	// Raylib.
 	InitWindow(600, 600, "Gravity");
@@ -146,7 +167,7 @@ int wWinMain(void* _0, void* _1, void* _2, int _3)
 	while (!WindowShouldClose())
 	{
 		if (IsKeyPressed(KEY_R))
-			dyn = make();
+			dyn = sim();
 
 		dyn.step();
 		dyn.bias();
