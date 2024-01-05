@@ -28,7 +28,7 @@ static void draw_particle(Dyn const& dyn, int i)
 /// <summary>
 /// Universal gravitational constant (units: LLL/T/T/M).
 /// </summary>
-constexpr double G = 0.15;
+constexpr double G = 1.;
 
 /// <summary>
 /// Decide whether both components of the complex number are finite.
@@ -112,13 +112,15 @@ int wWinMain(void* _0, void* _1, void* _2, int _3)
 		C const rot = std::polar(0., PI64 / 6);
 		for (int i = n - 1; i >= 0; i--)
 		{
-			typedef std::uniform_real_distribution<> D;
-			D z(-40, 40.), v(0, 0), m(1., 5.), r(1., 5.);
-			auto sca = [&](D& d) { return d(rng); };
-			auto vec = [&](D& d) { return C(sca(d), sca(d)); };
+			std::uniform_real_distribution<> z(-50, 50.), v(-1, 1);
+			std::cauchy_distribution<> m(5., 1.), r(5., 1.); // center; scale.
+#define sca(d) d(rng)
+#define vec(d) C(sca(d), sca(d))
 			Dyn::Entry e;
 			e.z = vec(z), e.v = vec(v) + rot / abs(e.z) * e.z, e.a = 0;
-			e.m = sca(m), e.r = sca(r);
+			e.m = abs(sca(m)), e.r = abs(sca(r));
+#undef vec
+#undef sca
 			dyn.tab.push_back(e);
 		}
 		// It is here where all accelerations are computed
