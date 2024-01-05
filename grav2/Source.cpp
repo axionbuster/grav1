@@ -13,11 +13,13 @@ static void draw_particle(Dyn const& dyn, int i)
 {
 	auto color = BLACK;
 	auto const& e = dyn[i];
-	double prop = e.m / dyn.mass(); // kinda doesn't make sense...
+	auto circarea = [](double r) { return r * r * PI64; };
+	double score = (e.m / dyn.mass()) / (circarea(e.r) / dyn.area());
+	score = score / (1 + score);
 	using std::max;
 	using std::min;
 	typedef unsigned char U;
-	color.a = (U)min(256., prop * 256);
+	color.a = (U)min(250., score * 256);
 	color.a = max(color.a, (U)50);
 #define F(func) func(v32(e.z), (float)e.r, color);
 	F(DrawCircleLinesV);
@@ -41,7 +43,7 @@ static bool finite(C const& c) { return isfinite(c.real()) && isfinite(c.imag())
 /// <param name="l"></param>
 /// <param name="r"></param>
 /// <returns>Force (units: ML/T/T/T)</returns>
-C newton_gravity(Dyn::Entry const& l, Dyn::Entry const& r)
+static C newton_gravity(Dyn::Entry const& l, Dyn::Entry const& r)
 {
 	// Low-discrepancy sequences needed for parts of the calculation.
 	static Halton2D hh;
@@ -99,9 +101,8 @@ C newton_gravity(Dyn::Entry const& l, Dyn::Entry const& r)
 	}
 }
 
-int wWinMain(void* _0, void* _1, void* _2, int _3)
+static Dyn make()
 {
-	// Simulation (dyn)
 	Dyn dyn;
 	dyn.par.dt = 0.05;
 	{
@@ -113,7 +114,7 @@ int wWinMain(void* _0, void* _1, void* _2, int _3)
 		for (int i = n - 1; i >= 0; i--)
 		{
 			std::uniform_real_distribution<> z(-50, 50.), v(-1, 1);
-			std::cauchy_distribution<> m(5., 1.), r(5., 1.); // center; scale.
+			std::cauchy_distribution<> m(5., 1.), r(2., 1.); // center; scale.
 #define sca(d) d(rng)
 #define vec(d) C(sca(d), sca(d))
 			Dyn::Entry e;
@@ -129,6 +130,13 @@ int wWinMain(void* _0, void* _1, void* _2, int _3)
 		dyn.precompute();
 	}
 	dyn.drv.pair_force = newton_gravity;
+	return dyn;
+}
+
+int wWinMain(void* _0, void* _1, void* _2, int _3)
+{
+	// Simulation (dyn)
+	Dyn dyn = make();
 
 	// Rendering
 	float constexpr px_per_l = 2.f;
@@ -139,6 +147,9 @@ int wWinMain(void* _0, void* _1, void* _2, int _3)
 
 	while (!WindowShouldClose())
 	{
+		if (IsKeyPressed(KEY_R))
+			dyn = make();
+
 		dyn.step();
 		dyn.bias();
 

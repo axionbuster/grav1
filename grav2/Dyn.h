@@ -54,18 +54,22 @@ public:
 	Dyn() = default;
 	Dyn(Param const& par) : par(par) {}
 	Dyn(Dyn const& dyn) = default;
-	Dyn(Dyn&& dyn) noexcept : par(dyn.par), tab(std::move(dyn.tab)), drv(dyn.drv), copy(), m_mass(dyn.m_mass) {}
+	Dyn(Dyn&& dyn) noexcept
+		: par(dyn.par), tab(std::move(dyn.tab)), drv(dyn.drv), copy()
+		, m_mass(dyn.m_mass), m_area(dyn.m_area) {}
 	Dyn& operator=(Dyn const& dyn) noexcept
 	{
 		if (&dyn == this) return *this;
-		par = dyn.par, tab = dyn.tab, drv = dyn.drv, m_mass = dyn.m_mass;
+		par = dyn.par, tab = dyn.tab, drv = dyn.drv;
+		m_mass = dyn.m_mass, m_area = dyn.m_area;
 		copy = V();
 		return *this;
 	}
 	Dyn& operator=(Dyn&& dyn) noexcept
 	{
 		if (&dyn == this) return *this;
-		par = dyn.par, drv = dyn.drv, m_mass = dyn.m_mass;
+		par = dyn.par, drv = dyn.drv;
+		m_mass = dyn.m_mass, m_area = dyn.m_area;
 		tab = std::move(dyn.tab);
 		copy = V();
 		return *this;
@@ -88,7 +92,7 @@ public:
 	Driver drv;
 
 	/// <summary>
-	/// 1. Find and store the total mass.
+	/// 1. Find and store the total mass and area.
 	/// 2. Precompute all accelerations before the first iteration.
 	/// </summary>
 	void precompute();
@@ -117,6 +121,12 @@ public:
 	/// <returns></returns>
 	double mass() const { return m_mass; }
 
+	/// <summary>
+	/// Recall the total "area" of particles.
+	/// (All particles have a circular area.)
+	/// </summary>
+	double area() const { return m_area; }
+
 private:
 	/// <summary>
 	/// A copy of `tab` made at different times by different
@@ -128,6 +138,11 @@ private:
 	/// Sum of the masses of all particles.
 	/// </summary>
 	double m_mass{ 0 };
+
+	/// <summary>
+	/// Sum of all areas of all particles.
+	/// </summary>
+	double m_area{ 0 };
 
 	/// <summary>
 	/// Compute the acceleration felt by particle at index `i` if it were at
