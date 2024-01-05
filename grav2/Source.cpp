@@ -65,7 +65,7 @@ static C newton_gravity(Dyn::Entry const& l, Dyn::Entry const& r)
 		// Circular intersection.
 		CircularIntersection sect(l.z, l.r, r.z, r.r);
 		// Computation of lunar force.
-		auto compute = [&](C const& p)
+		auto infinitesimal = [&](C const& p)
 			{
 				// `p` is sampled from a certain square in
 				// a reoriented coordinate system, where
@@ -77,16 +77,19 @@ static C newton_gravity(Dyn::Entry const& l, Dyn::Entry const& r)
 				n++;
 				C arm = as - p; double dist = abs(arm);
 				// [***] `fpm` will be missing the factors of: M (= # trials), G, dm.
+				// [***] `dm` is as yet unavailable; it's computed soon.
 				fpm += 1 / dist / dist / dist / M * sect.orient(arm);
 			};
 		// Boom.
 		for (int i = M - 1; i >= 0; i--)
-			sect.monte(hh.next(), compute);
+			sect.monte(hh.next(), infinitesimal);
 		// If no sample hit, the integration failed.
 		if (!n) return 0;
-		// Compute dm by the ratio -> dm : m = 1 : n
+		// [***] Compute dm by the ratio -> dm : m = 1 : n
 		// (where dm: infinitesimal mass, m: mass of left particle,
 		// n: number of samples hit).
+		// You can see why I have left out the computation of dm:
+		// the number of samples hit, n, is unavailable while "n++".
 		double dm = l.m / n;
 		// [***] Multiply back the missing factors in `fpm`.
 		fpm *= M * G * dm;
@@ -105,14 +108,14 @@ static Dyn make()
 	dyn.par.dt = 0.05;
 	{
 		// Generate this many (n) particles.
-		int constexpr n = 400;
+		int constexpr n = 600;
 		auto seed = []() { std::random_device dev; return dev(); }();
 		auto rng = std::mt19937(seed);
-		C const rot = std::polar(1., PI64 / 3);
+		C const rot = std::polar(1., PI64 / 2);
 		for (int i = n - 1; i >= 0; i--)
 		{
 			std::uniform_real_distribution<> v(0, 0), r(0.5, 1.5);
-			std::cauchy_distribution<> z(0., 3.), m(100., 1.); // center; scale.
+			std::cauchy_distribution<> z(0., 3.), m(100., 10.); // center; scale.
 #define sca(d) d(rng)
 #define vec(d) C(sca(d), sca(d))
 			Dyn::Entry e;
@@ -164,9 +167,12 @@ static void universal_force(Dyn& dyn)
 	for (int i = dyn.n() - 1; i >= 0; i--)
 	{
 		double r = abs(dyn[i].z);
-		double r2 = 500. * tanh(r / 500.);
+		double r2 = 1200. * tanh(r / 1200.);
 		dyn[i].z *= r2 / r;
-		dyn[i].v *= r2 / r;
+
+		// Turn on (uncomment) for less interesting effects:
+		// (harmless)
+		// dyn[i].v *= r2 / r;
 	}
 }
 
@@ -179,7 +185,11 @@ int wWinMain(void* _0, void* _1, void* _2, int _3)
 	Dyn dyn = sim();
 
 	// Rendering
-	float constexpr px_per_l = 2.5f;
+	float constexpr px_per_l = 1.f;
+
+	// Misc.
+	int constexpr reset_at_s = 30;
+	int resets = 0;
 
 	// Raylib.
 	InitWindow(600, 600, "Gravity");
@@ -188,7 +198,14 @@ int wWinMain(void* _0, void* _1, void* _2, int _3)
 	while (!WindowShouldClose())
 	{
 		if (IsKeyPressed(KEY_R))
-			dyn = sim();
+			dyn = sim(); // reset simulation
+
+		{
+			// Regularly reset.
+			int quo = (int)(GetTime() / reset_at_s);
+			if (quo > resets) dyn = sim();
+			resets = std::max(quo, resets);
+		}
 
 		dyn.step();
 		dyn.bias();
@@ -209,7 +226,7 @@ int wWinMain(void* _0, void* _1, void* _2, int _3)
 			DrawFPS(16, 16);
 			auto ke = kinetic_energy(dyn);
 			char msg_ke[300];
-			snprintf(msg_ke, sizeof(msg_ke), "KE: %.4G LL/T/T", ke);
+			snprintf(msg_ke, sizeof(msg_ke), "KE: %.4G MLL/T/T", ke);
 			DrawText(msg_ke, 16, 40, 20, BLACK); // x, y, font size (px)
 		}
 		EndDrawing();
