@@ -105,14 +105,14 @@ static Dyn make()
 	dyn.par.dt = 0.05;
 	{
 		// Generate this many (n) particles.
-		int constexpr n = 500;
+		int constexpr n = 400;
 		auto seed = []() { std::random_device dev; return dev(); }();
 		auto rng = std::mt19937(seed);
-		C const rot = std::polar(1., PI64 / 6);
+		C const rot = std::polar(1., PI64 / 3);
 		for (int i = n - 1; i >= 0; i--)
 		{
 			std::uniform_real_distribution<> v(0, 0), r(0.5, 1.5);
-			std::cauchy_distribution<> z(0., 10.), m(100., 1.); // center; scale.
+			std::cauchy_distribution<> z(0., 3.), m(100., 1.); // center; scale.
 #define sca(d) d(rng)
 #define vec(d) C(sca(d), sca(d))
 			Dyn::Entry e;
@@ -150,15 +150,36 @@ static Dyn make_set1()
 	return dyn;
 }
 
+static double kinetic_energy(Dyn const& dyn)
+{
+	double ke{};
+	for (int i = dyn.n() - 1; i >= 0; i--)
+		ke += std::norm(dyn[i].v) * dyn[i].m;
+	return ke / 2;
+}
+
+static void universal_force(Dyn& dyn)
+{
+	// A crude way to fix the boundary conditions...
+	for (int i = dyn.n() - 1; i >= 0; i--)
+	{
+		double r = abs(dyn[i].z);
+		double r2 = 500. * tanh(r / 500.);
+		dyn[i].z *= r2 / r;
+		dyn[i].v *= r2 / r;
+	}
+}
+
 int wWinMain(void* _0, void* _1, void* _2, int _3)
 {
-	auto sim = []() { return make_set1(); };
+	// auto sim = make_set1;
+	auto sim = make;
 
 	// Simulation (dyn)
 	Dyn dyn = sim();
 
 	// Rendering
-	float constexpr px_per_l = 2.f;
+	float constexpr px_per_l = 2.5f;
 
 	// Raylib.
 	InitWindow(600, 600, "Gravity");
@@ -171,6 +192,7 @@ int wWinMain(void* _0, void* _1, void* _2, int _3)
 
 		dyn.step();
 		dyn.bias();
+		universal_force(dyn);
 
 		// The camera allows using the world coordinate system as it is.
 		Camera2D cam{};
@@ -183,7 +205,12 @@ int wWinMain(void* _0, void* _1, void* _2, int _3)
 			BeginMode2D(cam);
 			for (int i = dyn.n() - 1; i >= 0; i--) draw_particle(dyn, i);
 			EndMode2D();
+
 			DrawFPS(16, 16);
+			auto ke = kinetic_energy(dyn);
+			char msg_ke[300];
+			snprintf(msg_ke, sizeof(msg_ke), "KE: %.4G LL/T/T", ke);
+			DrawText(msg_ke, 16, 40, 20, BLACK); // x, y, font size (px)
 		}
 		EndDrawing();
 	}
