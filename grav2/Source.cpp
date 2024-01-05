@@ -13,12 +13,11 @@ static void draw_particle(Dyn const& dyn, int i)
 {
 	auto color = BLACK;
 	auto const& e = dyn[i];
-	double prop = e.m / dyn.mass();
-	double odds = prop / (1 - prop);
+	double prop = e.m / dyn.mass(); // kinda doesn't make sense...
 	using std::max;
 	using std::min;
 	typedef unsigned char U;
-	color.a = (U)min(256., odds * 256);
+	color.a = (U)min(256., prop * 256);
 	color.a = max(color.a, (U)50);
 #define F(func) func(v32(e.z), (float)e.r, color);
 	F(DrawCircleLinesV);

@@ -2,8 +2,6 @@
 
 #include "Include.h"
 
-#include <functional>
-
 /// <summary>
 /// Generate a Halton sequence (algorithm is due to Wikipedia) of a given base (`b`).
 /// 
@@ -33,10 +31,8 @@ private:
 };
 
 /// <summary>
-/// Quasi-Monte Carlo integrator in two dimensions
-/// using Halton low-discrepancy sequences for fast convergence.
-/// 
-/// Region of integration: Unit square in (0,1) x (0,1).
+/// Using the Halton low-discrepancy sequences,
+/// generates points evenly in the unit square in (0,1) x (0,1).
 /// </summary>
 struct Halton2D
 {

@@ -1,7 +1,8 @@
 #pragma once
 
-#include <raylib.h>
+#include <functional>
 #include <complex>
+#include <raylib.h>
 
 typedef std::complex<double> C;
 typedef std::complex<float> Cf;
