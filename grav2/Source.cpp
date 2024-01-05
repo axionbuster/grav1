@@ -77,7 +77,7 @@ C newton_gravity(Dyn::Entry const& l, Dyn::Entry const& r)
 				n++;
 				C arm = as - p; double dist = abs(arm);
 				// [***] `fpm` will be missing the factors of: M (=# trials), G, dm.
-				fpm += 1 / dist / dist / dist / M * arm;
+				fpm += 1 / dist / dist / dist / M * sect.orient(arm);
 			};
 		// Boom.
 		for (int i = M - 1; i >= 0; i--)

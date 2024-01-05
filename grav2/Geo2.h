@@ -75,6 +75,7 @@ public:
 		using std::max;
 		c1 -= c0;
 		c = abs(c1);
+		derot = c1 / c;
 		double _l = min(-1., c - r1), _r = max(1., c + r1);
 		double _b = min(-1., -r1), _t = max(1., r1);
 		m = (_l + _r) / 2;
@@ -113,6 +114,12 @@ public:
 	/// Recall the x-coordinate of the center of the bounding square.
 	/// </summary>
 	double bounding_midpoint_x() const { return m; }
+
+	/// <summary>
+	/// Orient the reoriented vector to the original orientation (but the
+	/// left circle will be still at the origin). Essentially, un-rotate.
+	/// </summary>
+	C orient(C const& p) const { return p * derot; }
 private:
 	/// <summary>
 	/// Center of the right circle;
@@ -121,4 +128,11 @@ private:
 	/// Squared radius of the left circle (and right circle).
 	/// </summary>
 	double c{}, d{}, m{}, lrr{}, rrr{};
+	/// <summary>
+	/// Rotation needed to transform the reoriented coordinate system vector
+	/// to the original coordinate system (but without translation).
+	/// 
+	/// "De-rotation."
+	/// </summary>
+	C derot;
 };
