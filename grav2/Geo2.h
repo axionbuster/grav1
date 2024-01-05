@@ -69,28 +69,24 @@ public:
 	/// <param name="c1">Center of the right circle.</param>
 	/// <param name="r1">Radius of the right circle.</param>
 	CircularIntersection(C c0, double r0, C c1, double r1)
-		: lrr(r0* r0), rrr(r1* r1)
+		: lr(r0), lrsq(r0* r0), rrsq(r1* r1)
 	{
 		using std::min;
 		using std::max;
 		c1 -= c0;
 		c = abs(c1);
 		derot = c1 / c;
-		double _l = min(-1., c - r1), _r = max(1., c + r1);
-		double _b = min(-1., -r1), _t = max(1., r1);
-		m = (_l + _r) / 2;
-		d = max(_r - _l, _t - _b);
 	}
 
 	/// <summary>
 	/// Decide whether the point (reoriented coord.) is in the left circle.
 	/// </summary>
-	bool left(C const& p) const { return std::norm(p) < lrr; }
+	bool left(C const& p) const { return std::norm(p) < lrsq; }
 
 	/// <summary>
 	/// Decide whether the point (reoriented coord.) is in the right circle.
 	/// </summary>
-	bool right(C const& p) const { return std::norm(p - c) < rrr; }
+	bool right(C const& p) const { return std::norm(p - c) < rrsq; }
 
 	/// <summary>
 	/// Perform a trial, calling the user-defined process `f` that takes in
@@ -103,17 +99,7 @@ public:
 	/// <summary>
 	/// Transform a point in the (0,1) x (0,1) square to the bounding square.
 	/// </summary>
-	C from01(C const& h) const { return (h - C(.5, .5)) * d + m; }
-
-	/// <summary>
-	/// Recall the area of the bounding square.
-	/// </summary>
-	double bounding_area() const { return d * d; }
-
-	/// <summary>
-	/// Recall the x-coordinate of the center of the bounding square.
-	/// </summary>
-	double bounding_midpoint_x() const { return m; }
+	C from01(C const& h) const { return (h - C(.5, .5)) * lr; }
 
 	/// <summary>
 	/// Orient the reoriented vector to the original orientation (but the
@@ -122,12 +108,12 @@ public:
 	C orient(C const& p) const { return p * derot; }
 private:
 	/// <summary>
-	/// Center of the right circle;
-	/// Dimension (side length) of the bounding square;
+	/// Center of the right circle (x-coordinate);
 	/// Midpoint of the bounding square;
+	/// Radius of the left circle;
 	/// Squared radius of the left circle (and right circle).
 	/// </summary>
-	double c{}, d{}, m{}, lrr{}, rrr{};
+	double c{}, lr{}, lrsq{}, rrsq{};
 	/// <summary>
 	/// Rotation needed to transform the reoriented coordinate system vector
 	/// to the original coordinate system (but without translation).

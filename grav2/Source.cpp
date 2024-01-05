@@ -40,8 +40,6 @@ static bool finite(C const& c) { return isfinite(c.real()) && isfinite(c.imag())
 /// <summary>
 /// Force on the left particle (l) due to the right particle (r).
 /// </summary>
-/// <param name="l"></param>
-/// <param name="r"></param>
 /// <returns>Force (units: ML/T/T/T)</returns>
 static C newton_gravity(Dyn::Entry const& l, Dyn::Entry const& r)
 {
@@ -59,14 +57,14 @@ static C newton_gravity(Dyn::Entry const& l, Dyn::Entry const& r)
 		// the right circle.
 
 		// Number of Monte-Carlo trials.
-		constexpr int M = 100;
+		constexpr int M = 35;
 		// Force per mass (integrated).
 		C fpm;
 		// Number of pieces sampled in the left crescent (one-sided lune---just "lune").
 		int n{};
 		// Circular intersection.
 		CircularIntersection sect(l.z, l.r, r.z, r.r);
-		// Computation of lunar area and force.
+		// Computation of lunar force.
 		auto compute = [&](C const& p)
 			{
 				// `p` is sampled from a certain square in
@@ -78,7 +76,7 @@ static C newton_gravity(Dyn::Entry const& l, Dyn::Entry const& r)
 				if (!sect.left(p) || sect.right(p)) return;
 				n++;
 				C arm = as - p; double dist = abs(arm);
-				// [***] `fpm` will be missing the factors of: M (=# trials), G, dm.
+				// [***] `fpm` will be missing the factors of: M (= # trials), G, dm.
 				fpm += 1 / dist / dist / dist / M * sect.orient(arm);
 			};
 		// Boom.
@@ -107,14 +105,14 @@ static Dyn make()
 	dyn.par.dt = 0.05;
 	{
 		// Generate this many (n) particles.
-		int constexpr n = 200;
+		int constexpr n = 500;
 		auto seed = []() { std::random_device dev; return dev(); }();
 		auto rng = std::mt19937(seed);
-		C const rot = std::polar(0., PI64 / 6);
+		C const rot = std::polar(1., PI64 / 6);
 		for (int i = n - 1; i >= 0; i--)
 		{
-			std::uniform_real_distribution<> z(-50, 50.), v(-1, 1), r(1., 1.5);
-			std::cauchy_distribution<> m(7., 1.); // center; scale.
+			std::uniform_real_distribution<> v(0, 0), r(0.5, 1.5);
+			std::cauchy_distribution<> z(0., 10.), m(100., 1.); // center; scale.
 #define sca(d) d(rng)
 #define vec(d) C(sca(d), sca(d))
 			Dyn::Entry e;
@@ -139,7 +137,7 @@ int wWinMain(void* _0, void* _1, void* _2, int _3)
 	Dyn dyn = make();
 
 	// Rendering
-	float constexpr px_per_l = 2.f;
+	float constexpr px_per_l = 1.f;
 
 	// Raylib.
 	InitWindow(600, 600, "Gravity");
