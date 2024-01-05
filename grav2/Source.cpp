@@ -107,14 +107,14 @@ static Dyn make()
 	dyn.par.dt = 0.05;
 	{
 		// Generate this many (n) particles.
-		int constexpr n = 100;
+		int constexpr n = 200;
 		auto seed = []() { std::random_device dev; return dev(); }();
 		auto rng = std::mt19937(seed);
 		C const rot = std::polar(0., PI64 / 6);
 		for (int i = n - 1; i >= 0; i--)
 		{
-			std::uniform_real_distribution<> z(-50, 50.), v(-1, 1);
-			std::cauchy_distribution<> m(5., 1.), r(2., 1.); // center; scale.
+			std::uniform_real_distribution<> z(-50, 50.), v(-1, 1), r(1., 1.5);
+			std::cauchy_distribution<> m(7., 1.); // center; scale.
 #define sca(d) d(rng)
 #define vec(d) C(sca(d), sca(d))
 			Dyn::Entry e;
