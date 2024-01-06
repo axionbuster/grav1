@@ -22,13 +22,16 @@ static void draw_particle(Dyn const& dyn, int i)
 	color.a = (U)min(250., score * 256);
 	color.a = max(color.a, (U)50);
 	Vector2 z_postproc;
+	float r_postproc;
 	{
 		// Squish.
 		double r = abs(e.z);
 		double r2 = 250. * tanh(r / 250.);
-		z_postproc = v32(r2 / r * e.z);
+		double ratio = r2 / r;
+		z_postproc = v32(ratio * e.z);
+		r_postproc = min((float)(ratio * e.r), (float)e.r * .5f);
 	}
-#define F(func) func(z_postproc, (float)e.r, color);
+#define F(func) func(z_postproc, r_postproc, color);
 	F(DrawCircleLinesV);
 	F(DrawCircleV);
 #undef F
@@ -37,7 +40,12 @@ static void draw_particle(Dyn const& dyn, int i)
 /// <summary>
 /// Universal gravitational constant (units: LLL/T/T/M).
 /// </summary>
-constexpr double G = .5;
+constexpr double G = .1;
+
+/// <summary>
+/// Time step (T per frame).
+/// </summary>
+constexpr double DT = 0.005;
 
 /// <summary>
 /// Decide whether both components of the complex number are finite.
@@ -112,17 +120,17 @@ static C newton_gravity(Dyn::Entry const& l, Dyn::Entry const& r)
 static Dyn make()
 {
 	Dyn dyn;
-	dyn.par.dt = 0.05;
+	dyn.par.dt = DT;
 	{
 		// Generate this many (n) particles.
-		int constexpr n = 600;
+		int constexpr n = 200;
 		auto seed = []() { std::random_device dev; return dev(); }();
 		auto rng = std::mt19937(seed);
-		C const rot = std::polar(1., PI64 / 2);
+		C const rot = std::polar(1., PI64 / 3);
 		for (int i = n - 1; i >= 0; i--)
 		{
-			std::uniform_real_distribution<> v(0, 0), r(0.5, 1.5);
-			std::cauchy_distribution<> z(0., 3.), m(100., 10.); // center; scale.
+			std::uniform_real_distribution<> v(-10, 10), r(1.5, 3.0);
+			std::cauchy_distribution<> z(0., 10.), m(50., 10.); // center; scale.
 			auto sq = [](double a) { return a * a; };
 #define sca(d) d(rng)
 #define vec(d) C(sca(d), sca(d))
@@ -145,7 +153,7 @@ static Dyn make()
 static Dyn make_set1()
 {
 	Dyn dyn;
-	dyn.par.dt = 0.05;
+	dyn.par.dt = DT;
 	Dyn::Entry e0, e1;
 	e0.z = -10., e1.z = -e0.z;
 	e0.m = 30., e1.m = e0.m;
@@ -177,9 +185,9 @@ static void universal_force(Dyn& dyn)
 		// Unphysical effect(s).
 
 		// "Drag"
-		double av = abs(e.v);
-		double av2 = 400. * tanh(av / 400.);
-		e.v *= av2 / av;
+		//double av = abs(e.v);
+		//double av2 = 350. * tanh(av / 350.);
+		//e.v *= av2 / av;
 	}
 }
 
@@ -195,8 +203,9 @@ int wWinMain(void* _0, void* _1, void* _2, int _3)
 	float constexpr px_per_l = 1.f;
 
 	// Misc.
-	int constexpr reset_at_sec = 60;
+	int constexpr reset_at_sec = 180;
 	int resets = 0;
+	double last_reset_s = 0;
 
 	// Raylib.
 	InitWindow(600, 600, "Gravity");
@@ -205,11 +214,17 @@ int wWinMain(void* _0, void* _1, void* _2, int _3)
 	while (!WindowShouldClose())
 	{
 		if (IsKeyPressed(KEY_R))
-			dyn = sim(); // reset simulation
-
+		{
+			// reset simulation
+			dyn = sim();
+			last_reset_s = GetTime();
+			resets = 0;
+		}
+		else
 		{
 			// Regularly reset.
-			int quo = (int)(GetTime() / reset_at_sec);
+			double time = GetTime() - last_reset_s;
+			int quo = (int)(time / reset_at_sec);
 			if (quo > resets) dyn = sim();
 			resets = std::max(quo, resets);
 		}
