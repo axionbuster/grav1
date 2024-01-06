@@ -21,7 +21,14 @@ static void draw_particle(Dyn const& dyn, int i)
 	typedef unsigned char U;
 	color.a = (U)min(250., score * 256);
 	color.a = max(color.a, (U)50);
-#define F(func) func(v32(e.z), (float)e.r, color);
+	Vector2 z_postproc;
+	{
+		// Squish.
+		double r = abs(e.z);
+		double r2 = 250. * tanh(r / 250.);
+		z_postproc = v32(r2 / r * e.z);
+	}
+#define F(func) func(z_postproc, (float)e.r, color);
 	F(DrawCircleLinesV);
 	F(DrawCircleV);
 #undef F
@@ -30,7 +37,7 @@ static void draw_particle(Dyn const& dyn, int i)
 /// <summary>
 /// Universal gravitational constant (units: LLL/T/T/M).
 /// </summary>
-constexpr double G = 1.;
+constexpr double G = .5;
 
 /// <summary>
 /// Decide whether both components of the complex number are finite.
@@ -116,11 +123,12 @@ static Dyn make()
 		{
 			std::uniform_real_distribution<> v(0, 0), r(0.5, 1.5);
 			std::cauchy_distribution<> z(0., 3.), m(100., 10.); // center; scale.
+			auto sq = [](double a) { return a * a; };
 #define sca(d) d(rng)
 #define vec(d) C(sca(d), sca(d))
 			Dyn::Entry e;
 			e.z = vec(z), e.v = vec(v) + rot / abs(e.z) * e.z, e.a = 0;
-			e.m = abs(sca(m)), e.r = abs(sca(r));
+			e.m = sq(sca(m)), e.r = sq(sca(r));
 #undef vec
 #undef sca
 			dyn.tab.push_back(e);
@@ -163,16 +171,15 @@ static double kinetic_energy(Dyn const& dyn)
 
 static void universal_force(Dyn& dyn)
 {
-	// A crude way to fix the boundary conditions...
 	for (int i = dyn.n() - 1; i >= 0; i--)
 	{
-		double r = abs(dyn[i].z);
-		double r2 = 1200. * tanh(r / 1200.);
-		dyn[i].z *= r2 / r;
+		auto& e = dyn[i];
+		// Unphysical effect(s).
 
-		// Turn on (uncomment) for less interesting effects:
-		// (harmless)
-		// dyn[i].v *= r2 / r;
+		// "Drag"
+		double av = abs(e.v);
+		double av2 = 400. * tanh(av / 400.);
+		e.v *= av2 / av;
 	}
 }
 
@@ -188,7 +195,7 @@ int wWinMain(void* _0, void* _1, void* _2, int _3)
 	float constexpr px_per_l = 1.f;
 
 	// Misc.
-	int constexpr reset_at_s = 30;
+	int constexpr reset_at_sec = 60;
 	int resets = 0;
 
 	// Raylib.
@@ -202,7 +209,7 @@ int wWinMain(void* _0, void* _1, void* _2, int _3)
 
 		{
 			// Regularly reset.
-			int quo = (int)(GetTime() / reset_at_s);
+			int quo = (int)(GetTime() / reset_at_sec);
 			if (quo > resets) dyn = sim();
 			resets = std::max(quo, resets);
 		}
