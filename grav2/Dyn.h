@@ -23,7 +23,7 @@ public:
 		/// Inclusive lower and upper bounds for the time step if using variable
 		/// time step integrator.
 		/// </summary>
-		double low_dt{ 0.000005 }, high_dt{ 0.25 };
+		double low_dt{ 0.000005 }, high_dt{ 0.05 };
 	};
 
 	/// <summary>
