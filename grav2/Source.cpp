@@ -48,11 +48,6 @@ constexpr double G = .1;
 constexpr double DT = 0.005;
 
 /// <summary>
-/// Decide whether both components of the complex number are finite.
-/// </summary>
-static bool finite(C const& c) { return isfinite(c.real()) && isfinite(c.imag()); }
-
-/// <summary>
 /// Force on the left particle (l) due to the right particle (r).
 /// </summary>
 /// <returns>Force (units: ML/T/T/T)</returns>
@@ -72,7 +67,7 @@ static C newton_gravity(Dyn::Entry const& l, Dyn::Entry const& r)
 		// the right circle.
 
 		// Number of Monte-Carlo trials.
-		constexpr int M = 35;
+		constexpr int M = 25;
 		// Force per mass (integrated).
 		C fpm;
 		// Number of pieces sampled in the left crescent (one-sided lune---just "lune").
@@ -117,20 +112,77 @@ static C newton_gravity(Dyn::Entry const& l, Dyn::Entry const& r)
 	}
 }
 
+/// <summary>
+/// Compute the largest absolute value between the
+/// respective differences of the real and imaginary
+/// components of the given complex numbers `a` and `b`.
+/// 
+/// Complex Largest Absolute Deviation.
+/// </summary>
+static double clad(C const& a, C const& b)
+{
+	return std::max(
+		abs(a.real() - b.real()),
+		abs(a.imag() - b.imag())
+	);
+}
+
+/// <summary>
+/// Judge the two calculated position values that should ideally be
+/// identical (but would be different if the system was too violent).
+/// 
+/// The specification is in the `Dyn::Driver` structure documentation.
+/// Basically, +1 expresses judgement of safety (so use a larger time
+/// step); -1 expresses concern (use a finer time step and retry the computation
+/// as appropriate); 0 expresses neutrality.
+/// 
+/// Strong vs. weak: this distinction is explained in the
+/// `beasons` namespace docs. See Beasons.h.
+/// Beason's method, by the way, is the chosen method of integration.
+/// 
+/// Basically, the strong one is the one that will be
+/// substitued in for the position value of the particle at the next time step,
+/// and the weak one is a duplicate calculation that is
+/// only provided for the estimation of error.
+/// Again, in the absense of error, strong should nearly equal weak.
+/// </summary>
+static int judge_z(C const& strong, C const& weak)
+{
+	double c = clad(strong, weak);
+	// Units: L.
+	if (c > 0.01) return -1; // try finer time step.
+	else if (c < 0.0001) return +1; // suggest coarser time step.
+	else return 0;
+}
+
+/// <summary>
+/// Like `judge_z`, judge the velocities.
+/// </summary>
+static int judge_v(C const& strong, C const& weak)
+{
+	double c = clad(strong, weak);
+	// Units: L/T.
+	if (c > 0.01) return -1; // try finer time step.
+	else if (c < 0.0001) return +1; // suggest coarser time step.
+	else return 0;
+}
+
 static Dyn make()
 {
 	Dyn dyn;
 	dyn.par.dt = DT;
+	dyn.drv.judge_z = judge_z;
+	dyn.drv.judge_v = judge_v;
 	{
 		// Generate this many (n) particles.
-		int constexpr n = 200;
+		int constexpr n = 75;
 		auto seed = []() { std::random_device dev; return dev(); }();
 		auto rng = std::mt19937(seed);
 		C const rot = std::polar(1., PI64 / 3);
 		for (int i = n - 1; i >= 0; i--)
 		{
-			std::uniform_real_distribution<> v(-10, 10), r(1.5, 3.0);
-			std::cauchy_distribution<> z(0., 10.), m(50., 10.); // center; scale.
+			std::uniform_real_distribution<> v(-10, 10), r(1.0, 5.0);
+			std::cauchy_distribution<> z(0., 10.), m(20, 5.); // center; scale.
 			auto sq = [](double a) { return a * a; };
 #define sca(d) d(rng)
 #define vec(d) C(sca(d), sca(d))
@@ -154,6 +206,8 @@ static Dyn make_set1()
 {
 	Dyn dyn;
 	dyn.par.dt = DT;
+	dyn.drv.judge_z = judge_z;
+	dyn.drv.judge_v = judge_v;
 	Dyn::Entry e0, e1;
 	e0.z = -10., e1.z = -e0.z;
 	e0.m = 30., e1.m = e0.m;
@@ -248,7 +302,11 @@ int wWinMain(void* _0, void* _1, void* _2, int _3)
 			DrawFPS(16, 16);
 			auto ke = kinetic_energy(dyn);
 			char msg_ke[300];
-			snprintf(msg_ke, sizeof(msg_ke), "KE: %.4G MLL/T/T", ke);
+			snprintf(msg_ke, sizeof(msg_ke),
+				"KE: %.4G MLL/T/T\n"
+				"dt: %.6f T/frame",
+				ke, dyn.par.dt
+			);
 			DrawText(msg_ke, 16, 40, 20, BLACK); // x, y, font size (px)
 		}
 		EndDrawing();

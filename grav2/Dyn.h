@@ -18,6 +18,12 @@ public:
 		/// Time step (T per step).
 		/// </summary>
 		double dt{};
+
+		/// <summary>
+		/// Inclusive lower and upper bounds for the time step if using variable
+		/// time step integrator.
+		/// </summary>
+		double low_dt{ 0.00005 }, high_dt{ 0.25 };
 	};
 
 	/// <summary>
@@ -37,13 +43,46 @@ public:
 
 	/// <summary>
 	/// Externally specified behavior.
+	/// 
+	/// No entry is required to exist. If an entry does not exist, some sort of
+	/// sensible behavior will be chosen; see the descriptions for individual items.
 	/// </summary>
 	struct Driver
 	{
 		/// <summary>
 		/// Compute the force on the left (first) particle by the right (second) particle.
+		/// 
+		/// If this doesn't exist, then the accelerations will either be untouched
+		/// after each `step` call or it will be reset to zero.
 		/// </summary>
 		std::function<C(Entry const&, Entry const&)> pair_force;
+
+		/// <summary>
+		/// Judge the strong and weak position vectors calculated in the same run
+		/// for some particle in some particle-particle pair to suggest whether to adjust
+		/// the time step.
+		/// 
+		/// Return a positive number if suggested to broaden the time step.
+		/// Return negative if suggested to narrow the time step; this answer
+		/// also suggests the reaction be retried (best effort) with
+		/// a smaller time step. Return 0 if no strong case is made
+		/// for either case.
+		/// 
+		/// If this doesn't exist, then a function that returns "0" for everything
+		/// (neutral) is assumed.
+		/// </summary>
+		std::function<int(C const& strong, C const& weak)> judge_z;
+
+		/// <summary>
+		/// See judge_z for information.
+		/// 
+		/// Summary: Positive number if time step should be increased,
+		/// negative if decreased and reaction should be retried as needed, or 0 if
+		/// neutral (no suggestion).
+		/// 
+		/// If not exist: No suggestion will be made.
+		/// </summary>
+		std::function<int(C const& strong, C const& weak)> judge_v;
 	};
 
 	typedef std::vector<Entry> V;

@@ -27,6 +27,9 @@
     <ClCompile Include="Geo2.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="Beasons.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Include.h">
@@ -36,6 +39,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Geo2.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Beasons.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

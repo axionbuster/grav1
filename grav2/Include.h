@@ -13,4 +13,9 @@ typedef std::complex<float> Cf;
 /// </summary>
 const double PI64 = std::acos(-1);
 
+/// <summary>
+/// Decide whether both components of the vector are finite floating-point numbers.
+/// </summary>
+inline bool finite(C const& c) { return isfinite(c.real()) && isfinite(c.imag()); }
+
 using namespace std::literals::complex_literals;

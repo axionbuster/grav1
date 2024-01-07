@@ -130,11 +130,13 @@
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="Beasons.cpp" />
     <ClCompile Include="Dyn.cpp" />
     <ClCompile Include="Geo2.cpp" />
     <ClCompile Include="Source.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Beasons.h" />
     <ClInclude Include="Dyn.h" />
     <ClInclude Include="Geo2.h" />
     <ClInclude Include="Include.h" />
