@@ -150,7 +150,7 @@ static int judge_z(C const& strong, C const& weak)
 {
 	double c = clad(strong, weak);
 	// Units: L.
-	if (c > 0.01) return -1; // try finer time step.
+	if (c > 0.001) return -1; // try finer time step.
 	else if (c < 0.0001) return +1; // suggest coarser time step.
 	else return 0;
 }
@@ -162,7 +162,7 @@ static int judge_v(C const& strong, C const& weak)
 {
 	double c = clad(strong, weak);
 	// Units: L/T.
-	if (c > 0.01) return -1; // try finer time step.
+	if (c > 0.001) return -1; // try finer time step.
 	else if (c < 0.0001) return +1; // suggest coarser time step.
 	else return 0;
 }
@@ -175,14 +175,14 @@ static Dyn make()
 	dyn.drv.judge_v = judge_v;
 	{
 		// Generate this many (n) particles.
-		int constexpr n = 75;
+		int constexpr n = 125;
 		auto seed = []() { std::random_device dev; return dev(); }();
 		auto rng = std::mt19937(seed);
 		C const rot = std::polar(1., PI64 / 3);
 		for (int i = n - 1; i >= 0; i--)
 		{
 			std::uniform_real_distribution<> v(-10, 10), r(1.0, 5.0);
-			std::cauchy_distribution<> z(0., 10.), m(20, 5.); // center; scale.
+			std::cauchy_distribution<> z(0., 10.), m(20, 7.); // center; scale.
 			auto sq = [](double a) { return a * a; };
 #define sca(d) d(rng)
 #define vec(d) C(sca(d), sca(d))
