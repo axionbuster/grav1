@@ -2,6 +2,7 @@
 #include "Beasons.h"
 
 using std::swap;
+using namespace dyn;
 
 // Names (usually):
 // e: Entry (particle).

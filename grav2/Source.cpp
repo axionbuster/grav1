@@ -274,11 +274,11 @@ int wWinMain(void* _0, void* _1, void* _2, int _3)
 	int const scheduling_levelup_at = 20;
 	int const scheduling_level_cap_excl = 15;
 	int scheduling_mood = 0;
-	auto const calls_per_frame = [&]() { return 1 + scheduling_mood / scheduling_levelup_at; };
+	auto const steps_per_frame = [&]() { return 1 + scheduling_mood / scheduling_levelup_at; };
 	auto const up_mood = [&]()
 		{
 			scheduling_mood++;
-			if (calls_per_frame() >= scheduling_level_cap_excl)
+			if (steps_per_frame() >= scheduling_level_cap_excl)
 				scheduling_mood--;
 		};
 	auto const down_mood = [&]()
@@ -309,7 +309,7 @@ int wWinMain(void* _0, void* _1, void* _2, int _3)
 			resets = std::max(quo, resets);
 		}
 
-		for (int i = calls_per_frame() - 1; i >= 0; i--)
+		for (int i = steps_per_frame() - 1; i >= 0; i--)
 		{
 			dyn.step();
 			dyn.bias();
@@ -330,14 +330,14 @@ int wWinMain(void* _0, void* _1, void* _2, int _3)
 
 			DrawFPS(16, 16);
 			auto ke = kinetic_energy(dyn);
-			char msg_ke[500];
-			snprintf(msg_ke, sizeof(msg_ke),
+			char msg[500];
+			snprintf(msg, sizeof(msg),
 				"KE: %.4G MLL/T/T\n"
-				"dt: %.6f T/try\n"
-				"tries per frame: %d",
-				ke, dyn.par.dt, calls_per_frame()
+				"dt: %.6f T/step\n"
+				"steps per frame: %d",
+				ke, dyn.par.dt, steps_per_frame()
 			);
-			DrawText(msg_ke, 16, 40, 20, BLACK); // x, y, font size (px)
+			DrawText(msg, 16, 40, 20, BLACK); // x, y, font size (px)
 		}
 		EndDrawing();
 

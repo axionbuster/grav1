@@ -9,12 +9,15 @@ using namespace beasons;
 /// <param name="left">Vector of coefficients</param>
 /// <param name="right">Vector of ... vectors</param>
 /// <returns>The dot product</returns>
-static C dot(double const left[4], C const right[4])
+static constexpr C dot(double const left[4], C const right[4])
 {
 	C z;
 	for (int i = 0; i < 4; i++) z += left[i] * right[i];
 	return z;
 }
+
+// :: BUTCHER TABLEAU ::
+// (A Butcher tableau summarizes a Runge-Kutta integration scheme).
 
 /// <summary>
 /// Coefficients for the "k" values (here referred to as y2
@@ -76,7 +79,7 @@ beasons::beason_bogacki_shampine(double h, ReckonSecondDerivative const& f, C y0
 		y2s[i] = f(y0s[i], y1s[i]);
 	}
 
-	BeasonsResults r;
+	BeasonsResults r{};
 
 	r.y1_strong = y1 + dot(bstrong, y2s) * h;
 	r.y1_weak = y1 + dot(bweak, y2s) * h;
