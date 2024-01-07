@@ -30,11 +30,15 @@ void Dyn::step()
 	// Choice of integrator.
 	using namespace beasons;
 
-	// Count cases that are too inaccurate.
-	int go_finer{};
+	// Are there cases that are too inaccurate?
+	bool go_finer{};
 
-	// Count cases that suggest integration step size may be safely increased.
-	int go_coarser{};
+	// Are there cases that suggest integration step size may be safely increased?
+	bool go_coarser{};
+
+	// There's some freedom/direction in handling the case where go_finer && go_coarser.
+	// Then either case is assuming priority.
+	// See the rest of this function body for how that's handled.
 
 	copy = tab;
 	for (int i = n() - 1; i >= 0; i--)
@@ -54,9 +58,9 @@ void Dyn::step()
 
 		do
 		{
-			// 1. Do the math.
+			// 1. Do the math (perform the integration).
 
-			auto accel = [&](C z, C v)
+			auto accel = [&](C const& z, C const& v)
 				{
 					e.z = z, e.v = v; // Destructive modification of the copied entry.
 					return accelerate(i); // e and i refer to the same entry.
@@ -80,16 +84,16 @@ void Dyn::step()
 				// +1: ambition, try coarser time step.
 				switch (sign(drv.judge_z(aa.y0_strong, aa.y0_weak)))
 				{
-				case 0: // pass-through
 				case -1:
 					dt = std::max(par.low_dt, dt / 2);
-					go_finer++;
+					go_finer = true;
 					// Retry with less "motivation."
 					// Too little motivation causes the loop to just give up.
 					motivation--;
 					continue;
+				case 0: break; // neutral
 				case 1:
-					go_coarser++;
+					go_coarser = true;
 					// No need to adjust `dt` since we're moving onto
 					// another particle.
 					break;
@@ -99,13 +103,14 @@ void Dyn::step()
 			{
 				switch (sign(drv.judge_v(aa.y1_strong, aa.y1_weak)))
 				{
-				case 0: // pass-through
 				case -1:
 					dt = std::max(par.low_dt, dt / 2);
-					go_finer++, motivation--;
+					go_finer = true;
+					motivation--;
 					continue;
+				case 0: break;
 				case 1:
-					go_coarser++;
+					go_coarser = true;
 					break;
 				}
 			}

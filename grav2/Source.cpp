@@ -88,7 +88,7 @@ static C newton_gravity(Dyn::Entry const& l, Dyn::Entry const& r)
 				C arm = as - p; double dist = abs(arm);
 				// [***] `fpm` will be missing the factors of: M (= # trials), G, dm.
 				// [***] `dm` is as yet unavailable; it's computed soon.
-				fpm += 1 / dist / dist / dist / M * sect.orient(arm);
+				fpm += 1 / dist / dist / dist / M * sect.unrotate(arm);
 			};
 		// Boom.
 		for (int i = M - 1; i >= 0; i--)
@@ -182,13 +182,13 @@ static Dyn make()
 		for (int i = n - 1; i >= 0; i--)
 		{
 			std::uniform_real_distribution<> v(-10, 10), r(1.0, 5.0);
-			std::cauchy_distribution<> z(0., 10.), m(20, 7.); // center; scale.
+			std::cauchy_distribution<> z(0., 30.), m(20, 7.); // center; scale.
 			auto sq = [](double a) { return a * a; };
 #define sca(d) d(rng)
 #define vec(d) C(sca(d), sca(d))
 			Dyn::Entry e;
 			e.z = vec(z), e.v = vec(v) + rot / abs(e.z) * e.z, e.a = 0;
-			e.m = sq(sca(m)), e.r = sq(sca(r));
+			e.m = sq(sca(m)) + 1., e.r = sq(sca(r)) + 1.;
 #undef vec
 #undef sca
 			dyn.tab.push_back(e);

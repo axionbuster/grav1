@@ -11,7 +11,6 @@
 /// </summary>
 struct Halton
 {
-	unsigned n{ 0 }, d{ 1 }, x{}, y{}, b{};
 	/// <summary>
 	/// Initialize a sequence with the given prime base.
 	/// </summary>
@@ -23,6 +22,7 @@ struct Halton
 	/// <returns>A number in the open interval (0, 1).</returns>
 	double next();
 private:
+	unsigned n{ 0 }, d{ 1 }, x{}, y{}, b{};
 	friend struct Halton2D;
 	/// <summary>
 	/// Create a default instance in an unspecified (erroneous) state.
@@ -71,10 +71,13 @@ public:
 	CircularIntersection(C c0, double r0, C c1, double r1)
 		: lr(r0), lrsq(r0* r0), rrsq(r1* r1)
 	{
-		using std::min;
-		using std::max;
+		// Translate (geometry) as required.
 		c1 -= c0;
+		// Make a circle centered about (0,0) passing through point c1
+		// and then construct the intersection (c) between this circle
+		// and the positive real axis ray. This represents rotation.
 		c = abs(c1);
+		// Compute the reverse rotation.
 		derot = c1 / c;
 	}
 
@@ -105,7 +108,7 @@ public:
 	/// Orient the reoriented vector to the original orientation (but the
 	/// left circle will be still at the origin). Essentially, un-rotate.
 	/// </summary>
-	C orient(C const& p) const { return p * derot; }
+	C unrotate(C const& p) const { return p * derot; }
 private:
 	/// <summary>
 	/// Center of the right circle (x-coordinate);

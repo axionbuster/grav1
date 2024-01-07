@@ -29,7 +29,7 @@ namespace beasons
 	/// A subroutine to take the position and velocity, in this order,
 	/// and then return the acceleration.
 	/// </summary>
-	typedef std::function<C(C, C)> ReckonSecondDerivative;
+	typedef std::function<C(const C&, const C&)> ReckonSecondDerivative;
 
 	/// <summary>
 	/// The results of an integration step.
