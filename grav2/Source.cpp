@@ -5,6 +5,8 @@
 #include "Dyn.h"
 #include "Geo2.h"
 
+using namespace dyn;
+
 static Cf c32(C c64) { return Cf((float)c64.real(), (float)c64.imag()); }
 static Vector2 v32(Cf c32) { return Vector2{ c32.real(), c32.imag() }; }
 static Vector2 v32(C c64) { return v32(c32(c64)); }

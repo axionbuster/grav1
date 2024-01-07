@@ -11,23 +11,34 @@
 /// </summary>
 struct Halton
 {
+private:
+	/// <summary>
+	/// Algorithm's working state. This depends on the algorithm itself.
+	/// There are other ways of generating Halton sequences.
+	/// </summary>
+	unsigned n{ 0 }, d{ 1 }, x{}, y{}, b{};
+public:
 	/// <summary>
 	/// Initialize a sequence with the given prime base.
 	/// </summary>
 	/// <param name="b">Base (prime number).</param>
 	Halton(unsigned b) : b(b) {}
+
 	/// <summary>
 	/// Extract a term and advance the internal state.
 	/// </summary>
 	/// <returns>A number in the open interval (0, 1).</returns>
 	double next();
 private:
-	unsigned n{ 0 }, d{ 1 }, x{}, y{}, b{};
-	friend struct Halton2D;
 	/// <summary>
 	/// Create a default instance in an unspecified (erroneous) state.
 	/// </summary>
 	Halton() : b(0) {}
+
+	// Allow initializing in an array using the no-argument
+	// constructor, which would be "off" to make available
+	// to the anyone else for the risk of construction of an invalid state.
+	friend struct Halton2D;
 };
 
 /// <summary>
@@ -60,6 +71,23 @@ struct Halton2D
 /// </summary>
 struct CircularIntersection
 {
+private:
+	/// <summary>
+	/// Center of the right circle (x-coordinate);
+	/// Midpoint of the bounding square;
+	/// Radius of the left circle;
+	/// Squared radius of the left circle (and right circle).
+	/// </summary>
+	double c{}, lr{}, lrsq{}, rrsq{};
+
+	/// <summary>
+	/// Rotation needed to transform the reoriented coordinate system vector
+	/// to the original coordinate system (but without translation).
+	/// 
+	/// "De-rotation."
+	/// </summary>
+	C derot;
+
 public:
 	/// <summary>
 	/// Construct data about the (possible) intersection between two circles.
@@ -109,19 +137,4 @@ public:
 	/// left circle will be still at the origin). Essentially, un-rotate.
 	/// </summary>
 	C unrotate(C const& p) const { return p * derot; }
-private:
-	/// <summary>
-	/// Center of the right circle (x-coordinate);
-	/// Midpoint of the bounding square;
-	/// Radius of the left circle;
-	/// Squared radius of the left circle (and right circle).
-	/// </summary>
-	double c{}, lr{}, lrsq{}, rrsq{};
-	/// <summary>
-	/// Rotation needed to transform the reoriented coordinate system vector
-	/// to the original coordinate system (but without translation).
-	/// 
-	/// "De-rotation."
-	/// </summary>
-	C derot;
 };
