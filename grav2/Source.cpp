@@ -270,8 +270,19 @@ int wWinMain(void* _0, void* _1, void* _2, int _3)
 	auto const load_good = [=]() { return (double)GetFPS() >= 0.90 * fps_target; };
 	auto const load_terrible = [=]() { return (double)GetFPS() <= 0.65 * fps_target; };
 	int const scheduling_levelup_at = 20;
+	int const scheduling_level_cap_excl = 15;
 	int scheduling_mood = 0;
 	auto const calls_per_frame = [&]() { return 1 + scheduling_mood / scheduling_levelup_at; };
+	auto const up_mood = [&]()
+		{
+			scheduling_mood++;
+			if (calls_per_frame() >= scheduling_level_cap_excl)
+				scheduling_mood--;
+		};
+	auto const down_mood = [&]()
+		{
+			if (--scheduling_mood < 0) scheduling_mood++;
+		};
 
 	while (!WindowShouldClose())
 	{
@@ -329,9 +340,8 @@ int wWinMain(void* _0, void* _1, void* _2, int _3)
 		EndDrawing();
 
 		// Reflect upon the performance.
-		auto const bounce0 = [](int x) { return std::max(0, x); };
-		if (load_good()) scheduling_mood++;
-		else if (load_terrible()) scheduling_mood = bounce0(scheduling_mood - 1);
+		if (load_good()) up_mood();
+		else if (load_terrible()) down_mood();
 	}
 
 	CloseWindow();
