@@ -262,8 +262,16 @@ int wWinMain(void* _0, void* _1, void* _2, int _3)
 	double last_reset_s = 0;
 
 	// Raylib.
+	constexpr int fps_target = 60;
 	InitWindow(600, 600, "Gravity");
-	SetTargetFPS(60);
+	SetTargetFPS(fps_target);
+
+	// If there's time, schedule more calls to the simulation per frame.
+	auto const load_good = [=]() { return (double)GetFPS() >= 0.90 * fps_target; };
+	auto const load_terrible = [=]() { return (double)GetFPS() <= 0.65 * fps_target; };
+	int const scheduling_levelup_at = 20;
+	int scheduling_mood = 0;
+	auto const calls_per_frame = [&]() { return 1 + scheduling_mood / scheduling_levelup_at; };
 
 	while (!WindowShouldClose())
 	{
@@ -273,19 +281,27 @@ int wWinMain(void* _0, void* _1, void* _2, int _3)
 			dyn = sim();
 			last_reset_s = GetTime();
 			resets = 0;
+			scheduling_mood = 0;
 		}
 		else
 		{
 			// Regularly reset.
 			double time = GetTime() - last_reset_s;
 			int quo = (int)(time / reset_at_sec);
-			if (quo > resets) dyn = sim();
+			if (quo > resets)
+			{
+				dyn = sim();
+				scheduling_mood = 0;
+			}
 			resets = std::max(quo, resets);
 		}
 
-		dyn.step();
-		dyn.bias();
-		universal_force(dyn);
+		for (int i = calls_per_frame() - 1; i >= 0; i--)
+		{
+			dyn.step();
+			dyn.bias();
+			universal_force(dyn);
+		}
 
 		// The camera allows using the world coordinate system as it is.
 		Camera2D cam{};
@@ -301,15 +317,21 @@ int wWinMain(void* _0, void* _1, void* _2, int _3)
 
 			DrawFPS(16, 16);
 			auto ke = kinetic_energy(dyn);
-			char msg_ke[300];
+			char msg_ke[500];
 			snprintf(msg_ke, sizeof(msg_ke),
 				"KE: %.4G MLL/T/T\n"
-				"dt: %.6f T/frame",
-				ke, dyn.par.dt
+				"dt: %.6f T/try\n"
+				"tries per frame: %d",
+				ke, dyn.par.dt, calls_per_frame()
 			);
 			DrawText(msg_ke, 16, 40, 20, BLACK); // x, y, font size (px)
 		}
 		EndDrawing();
+
+		// Reflect upon the performance.
+		auto const bounce0 = [](int x) { return std::max(0, x); };
+		if (load_good()) scheduling_mood++;
+		else if (load_terrible()) scheduling_mood = bounce0(scheduling_mood - 1);
 	}
 
 	CloseWindow();
